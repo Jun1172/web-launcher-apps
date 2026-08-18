@@ -1,0 +1,9 @@
+__pycache__
+_index.json
+build
+.trae
+apps/user/file-demo/var
+*.log
+*.zip
+*.spec
+dist
