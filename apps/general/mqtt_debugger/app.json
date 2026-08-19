@@ -1,0 +1,13 @@
+{
+  "id": "mqtt-debug",
+  "name": "MQTT 调试助手",
+  "icon": "🌐",
+  "color": "#f87171",
+  "version": "1.0.0",
+  "changelog": "MQTT 订阅/发布调试，需安装 paho-mqtt。",
+  "port": 8143,
+  "cmd": ["apps/user/mqtt-debug/app.py"],
+  "dock": false,
+  "system": false,
+  "env": {"PIP_REQUIRE": "paho-mqtt"}
+}

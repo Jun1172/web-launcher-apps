@@ -1,0 +1,12 @@
+{
+  "id": "udp-debug",
+  "name": "UDP 调试助手",
+  "icon": "📡",
+  "color": "#34d399",
+  "version": "1.0.0",
+  "changelog": "UDP 收发调试，支持 Hex/Text 显示。",
+  "port": 8141,
+  "cmd": ["apps/user/udp-debug/app.py"],
+  "dock": false,
+  "system": false
+}

@@ -3,8 +3,9 @@
 - 严格遵循原始业务逻辑：64字节文件头解析、组件切换、ADC/IQ 复杂通道映射、ECharts 渲染
 """
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+import os
 
-PORT = 8115
+PORT = int(os.environ.get("LAUNCHER_APP_PORT", 0))
 
 # 使用 r"""...""" 原始字符串，防止 Python 误解析 JS 中的 \n 或 \uFEFF
 HTML = r"""<!DOCTYPE html>
