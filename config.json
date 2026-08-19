@@ -16,19 +16,5 @@
     "server": "ubuntu@1.15.30.237",
     "remote_path": "/var/www/repo",
     "packages_dir": "packages"
-  },
-  "system_apps": [
-    "store",
-    "todo",
-    "clock",
-    "settings",
-    "sysinfo"
-  ],
-  "ports": {
-    "store": 8100,
-    "todo": 8101,
-    "clock": 8102,
-    "sysinfo": 8103,
-    "settings": 8104
   }
 }

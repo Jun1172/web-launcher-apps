@@ -9,5 +9,6 @@
   "cmd": ["apps/user/mqtt-debug/app.py"],
   "dock": false,
   "system": false,
-  "env": {"PIP_REQUIRE": "paho-mqtt"}
+  "env": {"PIP_REQUIRE": "paho-mqtt"},
+  "group": "general"
 }
