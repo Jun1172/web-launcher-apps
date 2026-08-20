@@ -1,6 +1,12 @@
 # 📦 Web Launcher Apps — 业务应用仓库
 
-一个**纯应用仓库**项目：包含业务应用 + 一组 demo 应用，通过 [web-launcher](../web-launcher/) 框架运行。本项目**不含** launcher 框架代码本身。
+一个**纯应用仓库**项目：包含通用应用 + 一组 demo 应用，通过 [web-launcher](https://github.com/Jun1172/web-launcher) 框架运行。本项目**不含** launcher 框架代码本身。
+
+> 📚 **完整文档请查阅 Wiki**：[GitHub Wiki](https://github.com/Jun1172/web-launcher/wiki) | [Gitee Wiki](https://gitee.com/jun626/web-launcher/wikis)
+> 
+> Wiki 与 web-launcher 主仓库共用，涵盖 launcher 框架与应用开发的全部文档。
+
+---
 
 ## 📌 项目定位
 
@@ -20,8 +26,11 @@ web-launcher-apps/
 ├── publish.py                # 发布工具（与 web-launcher/publish.py 同步）
 └── apps/
     ├── README.md            # 应用开发指南（与 web-launcher 同步）
-    ├── etws/                # 业务应用分组（自定义 group="etws"）
-    │   └── ad-analysis/     # 📈 [C01] AD 数据解析（端口 8115）
+    ├── general/             # 通用应用分组（自定义 group="general"）
+    │   ├── calculator/      # 🧮 计算器
+    │   ├── mqtt_debugger/   # 📡 MQTT 调试工具
+    │   ├── tcp_debugger/    # 🔧 TCP 调试工具
+    │   └── udp_debugger/    # 📶 UDP 调试工具
     └── user/                # demo 应用分组
         ├── hello/           # 👋 最简 demo
         ├── notes/           # 🗒️ 便签
@@ -35,15 +44,18 @@ web-launcher-apps/
 
 ## 🎯 内置应用
 
-### 业务应用（`apps/etws/`，分组 `etws`）
+### 通用应用（`apps/general/`，分组 `general`）
 
 | 应用 | 端口 | 说明 |
 |------|------|------|
-| 📈 [C01]AD数据解析 ad-analysis | 8115 | ADC/IQ 曲线数据分析工具：导入 BIN 文件、多通道解析、Canvas 波形绘制、缩放/框选、CSV 导出 |
+| 🧮 计算器 calculator | — | 基础计算器工具 |
+| 📡 MQTT 调试 mqtt_debugger | — | MQTT 消息发布/订阅调试工具 |
+| 🔧 TCP 调试 tcp_debugger | — | TCP 客户端/服务端调试工具 |
+| 📶 UDP 调试 udp_debugger | — | UDP 数据收发调试工具 |
 
 ### demo 应用（`apps/user/`）
 
-详见 [web-launcher/README.md#内置应用](../web-launcher/README.md#-内置应用)。
+详见 [web-launcher 文档 - 内置应用](https://github.com/Jun1172/web-launcher/wiki/Getting-Started#内置应用)。
 
 ## 🚀 快速开始
 
@@ -52,9 +64,9 @@ web-launcher-apps/
 ```bash
 # 1. 把本项目的 apps/* 软链到 web-launcher/apps/
 # Windows（管理员权限）：
-mklink /D c:\Users\jun\Desktop\exe\web-launcher\apps\etws c:\Users\jun\Desktop\exe\web-launcher-apps\apps\etws
+mklink /D c:\path\to\web-launcher\apps\general c:\path\to\web-launcher-apps\apps\general
 # Linux：
-ln -s /path/to/web-launcher-apps/apps/etws /path/to/web-launcher/apps/etws
+ln -s /path/to/web-launcher-apps/apps/general /path/to/web-launcher/apps/general
 
 # 2. 启动 web-launcher
 cd ../web-launcher
@@ -64,8 +76,8 @@ python launcher.py
 ### 方式 B：复制 apps/ 到 web-launcher
 
 ```bash
-# 复制业务应用分组
-Copy-Item -Recurse apps/etws ../web-launcher/apps/
+# 复制通用应用分组
+Copy-Item -Recurse apps/general ../web-launcher/apps/
 ```
 
 ## 📦 发布流程
@@ -74,11 +86,11 @@ Copy-Item -Recurse apps/etws ../web-launcher/apps/
 # 列出所有可发布的应用
 python publish.py --list
 
-# 发布单个业务应用
-python publish.py apps/etws/ad-analysis
+# 发布单个通用应用
+python publish.py apps/general/calculator
 
-# 发布整个 etws 分组
-python publish.py --group etws
+# 发布整个 general 分组
+python publish.py --group general
 
 # 发布所有 user demo
 python publish.py --user
@@ -89,27 +101,27 @@ python publish.py --all
 
 ## 📋 app.json Schema
 
-详见 [web-launcher/README.md#app-json-schema](../web-launcher/README.md#-appjson-schema) 与 [apps/README.md](apps/README.md)。
+详见 [Wiki - Configuration](https://github.com/Jun1172/web-launcher/wiki/Configuration) 与 [apps/README.md](apps/README.md)。
 
-业务应用 ad-analysis 的清单示例：
+通用应用清单示例：
 
 ```json
 {
-  "id": "ad-analysis",
-  "name": "[C01]AD数据解析",
-  "icon": "📈",
-  "color": "#9b59b6",
+  "id": "calculator",
+  "name": "计算器",
+  "icon": "🧮",
+  "color": "#3498db",
   "version": "1.0.0",
-  "port": 8115,
-  "cmd": ["apps/etws/ad-analysis/app.py"],
-  "group": "etws"
+  "port": 8150,
+  "cmd": ["apps/general/calculator/app.py"],
+  "group": "general"
 }
 ```
 
 ## 🛣 待办
 
 - [ ] 确认是否保留 `apps/user/` 下与 web-launcher 重复的 demo（hello/notes/weather/game2048/proc-demo/file-demo/system-monitor/cpp-hello），避免双仓库同步漂移
-- [ ] 业务应用历史版本回退测试
+- [ ] 通用应用历史版本回退测试
 
 ## 📜 License
 
