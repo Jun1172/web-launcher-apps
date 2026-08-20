@@ -5,7 +5,7 @@
   "color": "#f87171",
   "version": "1.0.0",
   "changelog": "MQTT 订阅/发布调试，需安装 paho-mqtt。",
-  "port": 8143,
+  "port": 8144,
   "cmd": ["apps/general/mqtt-debug/app.py"],
   "dock": false,
   "system": false,

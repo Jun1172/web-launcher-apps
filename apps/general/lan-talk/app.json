@@ -5,7 +5,7 @@
   "color": "#ffc857",
   "version": "1.0.0",
   "changelog": "端到端加密聊天，支持私密群组与刷新即焚。",
-  "port": 8144,
+  "port": 8143,
   "cmd": ["apps/general/lan-talk/app.py"],
   "dock": false,
   "system": false,

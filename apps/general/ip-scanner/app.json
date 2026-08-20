@@ -1,0 +1,13 @@
+{
+  "id": "ip-scanner",
+  "name": "局域网扫描",
+  "icon": "🌐",
+  "color": "#8b5cf6",
+  "version": "1.0.1",
+  "changelog": "支持解析并显示局域网设备名称 (Hostname)。",
+  "port": 8141,
+  "cmd": ["apps/general/ip-scanner/app.py"],
+  "dock": false,
+  "system": false,
+  "group": "general"
+}

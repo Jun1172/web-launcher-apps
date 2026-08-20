@@ -1,0 +1,13 @@
+{
+  "id": "port-scanner",
+  "name": "端口扫描",
+  "icon": "🔌",
+  "color": "#f59e0b",
+  "version": "1.0.1",
+  "changelog": "修复表头不显示问题，Windows下支持解析具体进程/服务名称。",
+  "port": 8146,
+  "cmd": ["apps/general/port-scanner/app.py"],
+  "dock": false,
+  "system": false,
+  "group": "general"
+}

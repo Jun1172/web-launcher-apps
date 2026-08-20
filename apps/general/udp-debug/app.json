@@ -5,7 +5,7 @@
   "color": "#34d399",
   "version": "1.0.1",
   "changelog": "修复端口解析崩溃问题，增强前后端容错与错误提示。",
-  "port": 8141,
+  "port": 8148,
   "cmd": ["apps/general/udp-debug/app.py"],
   "dock": false,
   "system": false,
