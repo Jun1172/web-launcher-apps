@@ -1,0 +1,13 @@
+{
+  "id": "ros2-teleop",
+  "name": "机器人遥控",
+  "icon": "🎮",
+  "color": "#3b82f6",
+  "version": "1.0.0",
+  "changelog": "通过 Web 界面控制 ROS2 机器人。",
+  "port": 8202,
+  "cmd": ["apps/ros/ros2-teleop/app.py"],
+  "dock": false,
+  "system": false,
+  "group": "ros"
+}

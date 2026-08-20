@@ -1,0 +1,13 @@
+{
+  "id": "ros2-monitor",
+  "name": "ROS2 监控",
+  "icon": "",
+  "color": "#10b981",
+  "version": "1.0.0",
+  "changelog": "实时监控 ROS2 节点、话题、服务状态。",
+  "port": 8201,
+  "cmd": ["apps/ros/ros2-monitor/app.py"],
+  "dock": false,
+  "system": false,
+  "group": "ros"
+}

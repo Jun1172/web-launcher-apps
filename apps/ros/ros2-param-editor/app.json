@@ -1,0 +1,13 @@
+{
+  "id": "ros2-param-editor",
+  "name": "参数编辑器",
+  "icon": "⚙️",
+  "color": "#64748b",
+  "version": "1.0.0",
+  "changelog": "在线查看和修改 ROS2 节点参数。",
+  "port": 8207,
+  "cmd": ["apps/ros/ros2-param-editor/app.py"],
+  "dock": false,
+  "system": false,
+  "group": "ros"
+}

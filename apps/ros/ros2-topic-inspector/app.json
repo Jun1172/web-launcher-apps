@@ -1,0 +1,13 @@
+{
+  "id": "ros2-topic-inspector",
+  "name": "话题查看器",
+  "icon": "",
+  "color": "#8b5cf6",
+  "version": "1.0.0",
+  "changelog": "实时查看 ROS2 话题消息。",
+  "port": 8203,
+  "cmd": ["apps/ros/ros2-topic-inspector/app.py"],
+  "dock": false,
+  "system": false,
+  "group": "ros"
+}
