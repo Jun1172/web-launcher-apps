@@ -2,12 +2,6 @@
 
 一个**纯应用仓库**项目：包含通用应用 + 一组 demo 应用，通过 [web-launcher](https://github.com/Jun1172/web-launcher) 框架运行。本项目**不含** launcher 框架代码本身。
 
-> 📚 **完整文档请查阅 Wiki**：[GitHub Wiki](https://github.com/Jun1172/web-launcher/wiki) | [Gitee Wiki](https://gitee.com/jun626/web-launcher/wikis)
-> 
-> Wiki 与 web-launcher 主仓库共用，涵盖 launcher 框架与应用开发的全部文档。
-
----
-
 ## 📌 项目定位
 
 | 维度 | 说明 |
@@ -55,7 +49,7 @@ web-launcher-apps/
 
 ### demo 应用（`apps/user/`）
 
-详见 [web-launcher 文档 - 内置应用](https://github.com/Jun1172/web-launcher/wiki/Getting-Started#内置应用)。
+详见 [web-launcher README - 内置应用](https://github.com/Jun1172/web-launcher#-内置应用)。
 
 ## 🚀 快速开始
 
@@ -101,7 +95,7 @@ python publish.py --all
 
 ## 📋 app.json Schema
 
-详见 [Wiki - Configuration](https://github.com/Jun1172/web-launcher/wiki/Configuration) 与 [apps/README.md](apps/README.md)。
+详见 [web-launcher README - app.json Schema](https://github.com/Jun1172/web-launcher#-appjson-schema) 与 [apps/README.md](apps/README.md)。
 
 通用应用清单示例：
 
