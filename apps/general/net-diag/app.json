@@ -1,0 +1,12 @@
+{
+  "id": "net-diag",
+  "name": "网络诊断工具箱",
+  "icon": "🌐",
+  "color": "#06b6d4",
+  "version": "1.0.0",
+  "changelog": "v1.0.0: Ping测试+TCP端口扫描+DNS解析，延迟折线图",
+  "port": 8153,
+  "cmd": ["apps/general/net-diag/app.py"],
+  "system": false,
+  "group": "general"
+}
