@@ -1,0 +1,13 @@
+{
+  "id": "breakout",
+  "name": "极简打砖块",
+  "icon": "🏓",
+  "color": "#14b8a6",
+  "version": "1.0.0",
+  "changelog": "左右键控制挡板，三关耐久砖块。",
+  "port": 8164,
+  "cmd": ["apps/game/breakout/app.py"],
+  "dock": false,
+  "system": false,
+  "group": "game"
+}

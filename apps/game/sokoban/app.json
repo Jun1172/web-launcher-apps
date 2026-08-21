@@ -1,0 +1,13 @@
+{
+  "id": "sokoban",
+  "name": "经典推箱子",
+  "icon": "📦",
+  "color": "#a78bfa",
+  "version": "1.0.0",
+  "changelog": "方向键移动，Z 撤销，支持多关卡。",
+  "port": 8162,
+  "cmd": ["apps/game/sokoban/app.py"],
+  "dock": false,
+  "system": false,
+  "group": "game"
+}

@@ -592,8 +592,8 @@ class H(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-cache")
         self.send_header("Connection", "close")
         self.end_headers()
-        for i in range(1, count + 1):
-            try:
+        try:
+            for i in range(1, count + 1):
                 if not host:
                     res = {"seq": i, "latency": None, "timeout": True,
                            "method": "tcp", "error": "no host"}
@@ -607,16 +607,16 @@ class H(BaseHTTPRequestHandler):
                 # 仅 TCP 回退时补一拍节奏；系统 ping 自带 ~1s 间隔
                 if res.get("method") == "tcp" and res.get("latency") is not None:
                     time.sleep(1)
-            except (BrokenPipeError, ConnectionResetError):
-                # 客户端已断开
-                return
+        except (BrokenPipeError, ConnectionResetError):
+            # 客户端已断开
+            return
         # 发送结束标记
         try:
             self.wfile.write(
                 ("data: " + json.dumps({"done": True},
                  ensure_ascii=False) + "\n\n").encode("utf-8"))
             self.wfile.flush()
-        except Exception:
+        except (BrokenPipeError, ConnectionResetError):
             pass
 
     def handle_tcping(self, q):

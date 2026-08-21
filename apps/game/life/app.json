@@ -1,0 +1,13 @@
+{
+  "id": "life",
+  "name": "康威生命游戏",
+  "icon": "🧬",
+  "color": "#06b6d4",
+  "version": "1.0.0",
+  "changelog": "随机演化、暂停继续、点击绘制细胞。",
+  "port": 8167,
+  "cmd": ["apps/game/life/app.py"],
+  "dock": false,
+  "system": false,
+  "group": "game"
+}

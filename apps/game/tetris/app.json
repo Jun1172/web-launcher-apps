@@ -1,0 +1,13 @@
+{
+  "id": "tetris",
+  "name": "经典俄罗斯方块",
+  "icon": "🧱",
+  "color": "#ec4899",
+  "version": "1.0.0",
+  "changelog": "左右移动、下落、旋转，支持暂停与重开。",
+  "port": 8163,
+  "cmd": ["apps/game/tetris/app.py"],
+  "dock": false,
+  "system": false,
+  "group": "game"
+}

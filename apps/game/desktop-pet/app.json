@@ -1,0 +1,13 @@
+{
+  "id": "desktop-pet",
+  "name": "桌面电子宠物",
+  "icon": "🐾",
+  "color": "#e879f9",
+  "version": "1.0.0",
+  "changelog": "喂食、互动、清理与本地持久化状态。",
+  "port": 8169,
+  "cmd": ["apps/game/desktop-pet/app.py"],
+  "dock": false,
+  "system": false,
+  "group": "game"
+}

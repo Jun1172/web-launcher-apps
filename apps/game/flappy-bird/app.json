@@ -1,0 +1,13 @@
+{
+  "id": "flappy-bird",
+  "name": "一键像素鸟",
+  "icon": "🐦",
+  "color": "#f59e0b",
+  "version": "1.0.0",
+  "changelog": "空格、确认键或点击屏幕起飞。",
+  "port": 8161,
+  "cmd": ["apps/game/flappy-bird/app.py"],
+  "dock": false,
+  "system": false,
+  "group": "game"
+}
