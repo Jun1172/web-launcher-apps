@@ -1,5 +1,5 @@
 """ros2-teleop —— Web 机器人遥控"""
-import json, os, subprocess, threading, platform
+import json, os, subprocess, threading, platform, atexit
 from pathlib import Path
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -23,110 +23,77 @@ PORT = get_port()
 current_vel = {"linear_x": 0.0, "linear_y": 0.0, "angular_z": 0.0}
 last_error = ""   # 最近的错误信息，供前端诊断
 
-# === 优先用 rclpy 直接发布 (零延迟)，不可用时回退到 ros2 topic pub ===
-try:
-    import rclpy
-    from rclpy.node import Node
-    from geometry_msgs.msg import Twist as TwistMsg
-    _rclpy_ok = False
-    try:
-        rclpy.init()
-        _teleop_node = rclpy.create_node("web_teleop")
-        _vel_pub = _teleop_node.create_publisher(TwistMsg, "/cmd_vel", 10)
-        threading.Thread(target=lambda: rclpy.spin(_teleop_node), daemon=True).start()
-        _rclpy_ok = True
-    except Exception as _e:
-        last_error = f"rclpy init failed: {_e}"
+# 用 ros2 topic pub 子进程发布速度命令
+# (避免 rclpy 在 web server 进程中 init/spin 导致 ExternalShutdownException 和 SHM 端口冲突)
+pub_proc = None
+pub_lock = threading.Lock()
 
-    if _rclpy_ok:
-        def update_vel(linear_x, linear_y, angular_z):
-            """rclpy 直发：立即更新 + 10Hz 后台循环持续发布。"""
-            global current_vel
-            current_vel = {"linear_x": linear_x, "linear_y": linear_y, "angular_z": angular_z}
-            msg = TwistMsg()
-            msg.linear.x = linear_x
-            msg.linear.y = linear_y
-            msg.angular.z = angular_z
-            _vel_pub.publish(msg)
-
-        # 后台 10Hz 持续发布，让乌龟持续移动
-        def _pub_loop():
-            import time as _t
-            while True:
-                try:
-                    msg = TwistMsg()
-                    msg.linear.x = current_vel["linear_x"]
-                    msg.linear.y = current_vel["linear_y"]
-                    msg.angular.z = current_vel["angular_z"]
-                    _vel_pub.publish(msg)
-                except Exception:
-                    pass
-                _t.sleep(0.1)
-        threading.Thread(target=_pub_loop, daemon=True).start()
-
-        import atexit
-        atexit.register(lambda: (rclpy.ok() and rclpy.shutdown()))
-
-    else:
-        raise ImportError("rclpy not available")
-
-except (ImportError, Exception):
-    # === 回退：用 ros2 topic pub -r 10 (有启动延迟) ===
-    pub_proc = None
-    pub_lock = threading.Lock()
-
-    def _kill_pub():
-        global pub_proc
-        if pub_proc is not None:
-            try:
-                pub_proc.terminate()
-                try: pub_proc.wait(timeout=1)
-                except Exception:
-                    try: pub_proc.kill()
-                    except Exception: pass
+def _kill_pub():
+    global pub_proc
+    if pub_proc is not None:
+        try:
+            pub_proc.terminate()
+            try: pub_proc.wait(timeout=1)
             except Exception:
-                pass
-            pub_proc = None
+                try: pub_proc.kill()
+                except Exception: pass
+        except Exception:
+            pass
+        pub_proc = None
 
-    def update_vel(linear_x, linear_y, angular_z):
-        """子进程发布：kill+重启 ros2 topic pub -r 10。"""
-        global current_vel, pub_proc, last_error
-        current_vel = {"linear_x": linear_x, "linear_y": linear_y, "angular_z": angular_z}
-        with pub_lock:
-            _kill_pub()
-            is_win = platform.system() == "Windows"
-            cmd = (f'ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist '
-                   f'"{{linear: {{x: {linear_x}, y: {linear_y}, z: 0.0}}, '
-                   f'angular: {{x: 0.0, y: 0.0, z: {angular_z}}}}}"')
+def update_vel(linear_x, linear_y, angular_z):
+    """子进程发布：非零速度启动 ros2 topic pub -r 10；停止时 --once 发一次零速度。"""
+    global current_vel, pub_proc, last_error
+    current_vel = {"linear_x": linear_x, "linear_y": linear_y, "angular_z": angular_z}
+    is_win = platform.system() == "Windows"
+    with pub_lock:
+        _kill_pub()
+        # 速度全为 0：发一次停止消息即可，无需持续进程
+        if linear_x == 0.0 and linear_y == 0.0 and angular_z == 0.0:
+            cmd = ('ros2 topic pub --once /cmd_vel geometry_msgs/msg/Twist '
+                   '"{linear: {x: 0.0, y: 0.0, z: 0.0}, '
+                   'angular: {x: 0.0, y: 0.0, z: 0.0}}"')
             try:
-                pub_proc = subprocess.Popen(
+                subprocess.run(
                     cmd, shell=True,
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    timeout=2,
                     creationflags=subprocess.CREATE_NO_WINDOW if is_win else 0
                 )
             except Exception as e:
-                last_error = f"Popen failed: {e}"
-                pub_proc = None
+                last_error = f"stop failed: {e}"
+            return
+        # 非零速度：启动持续发布进程
+        cmd = (f'ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist '
+               f'"{{linear: {{x: {linear_x}, y: {linear_y}, z: 0.0}}, '
+               f'angular: {{x: 0.0, y: 0.0, z: {angular_z}}}}}"')
+        try:
+            pub_proc = subprocess.Popen(
+                cmd, shell=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                creationflags=subprocess.CREATE_NO_WINDOW if is_win else 0
+            )
+        except Exception as e:
+            last_error = f"Popen failed: {e}"
+            pub_proc = None
 
-    # 后台线程检测子进程是否意外退出，捕获 stderr
-    def _watch_pub():
-        import time as _t
-        global last_error
-        while True:
-            if pub_proc is not None:
-                rc = pub_proc.poll()
-                if rc is not None:
-                    try:
-                        err = pub_proc.stderr.read().decode("utf-8", errors="ignore").strip()
-                        if err:
-                            last_error = f"ros2 topic pub exited({rc}): {err[:300]}"
-                    except Exception:
-                        pass
-            _t.sleep(1)
-    threading.Thread(target=_watch_pub, daemon=True).start()
-
-    import atexit
-    atexit.register(_kill_pub)
+# 后台线程检测子进程是否意外退出，捕获 stderr
+def _watch_pub():
+    import time as _t
+    global last_error
+    while True:
+        if pub_proc is not None:
+            rc = pub_proc.poll()
+            if rc is not None:
+                try:
+                    err = pub_proc.stderr.read().decode("utf-8", errors="ignore").strip()
+                    if err:
+                        last_error = f"ros2 topic pub exited({rc}): {err[:300]}"
+                except Exception:
+                    pass
+        _t.sleep(1)
+threading.Thread(target=_watch_pub, daemon=True).start()
+atexit.register(_kill_pub)
 
 HTML = r"""<!DOCTYPE html>
 <html>
@@ -153,6 +120,7 @@ input[type=range]{width:100%}
 .tip code{background:#fef3c7;padding:2px 6px;border-radius:4px;font-family:monospace;color:#92400e}
 .tip a{color:#2563eb;text-decoration:none}
 .tip a:hover{text-decoration:underline}
+#diag{margin-top:12px;padding:8px 12px;background:#f0f9ff;border-radius:6px;font-size:12px;color:#155e75;min-height:18px}
 </style>
 </head>
 <body>
@@ -174,24 +142,23 @@ input[type=range]{width:100%}
     线速度: <span id="linear">0.0</span> m/s<br>
     角速度: <span id="angular">0.0</span> rad/s
   </div>
+  <div id="diag"></div>
   <div class="key-hint">键盘控制: W/A/S/D 移动，空格停止</div>
 </div>
 <script>
-let speed=0.5;
-let currentKey=null;
+var speed=0.5;
+var pressed={};
 
 document.getElementById('speed').oninput=function(){
   speed=parseFloat(this.value);
   document.getElementById('speed-val').textContent=speed.toFixed(1);
 };
 
-async function sendVel(linear_x,angular_z){
+function sendVel(linear_x,angular_z){
   document.getElementById('linear').textContent=linear_x.toFixed(2);
   document.getElementById('angular').textContent=angular_z.toFixed(2);
-  await fetch('/api/vel?lx='+linear_x+'&ly=0&az='+angular_z);
+  fetch('/api/vel?lx='+linear_x+'&ly=0&az='+angular_z);
 }
-
-const pressed=new Set();  // 避免按住键时 keydown 重复触发
 
 function applyKey(key){
   if(key==='w') sendVel(speed,0);
@@ -201,62 +168,58 @@ function applyKey(key){
   else if(key===' ') sendVel(0,0);
 }
 
-document.querySelectorAll('.direction-btn').forEach(btn=>{
-  btn.onmousedown=()=>{
-    const key=btn.dataset.key;
-    if(pressed.has(key))return;
-    pressed.add(key);
+var btns=document.querySelectorAll('.direction-btn');
+for(var i=0;i<btns.length;i++){
+  var b=btns[i];
+  b.onmousedown=function(){
+    var key=this.dataset.key;
+    if(pressed[key])return;
+    pressed[key]=true;
     applyKey(key);
   };
-  btn.onmouseup=()=>{pressed.clear();sendVel(0,0);};
-  btn.onmouseleave=()=>{if(pressed.size){pressed.clear();sendVel(0,0);}};
-  // 触摸支持
-  btn.ontouchstart=e=>{e.preventDefault();btn.onmousedown();};
-  btn.ontouchend=e=>{e.preventDefault();btn.onmouseup();};
-});
+  b.onmouseup=function(){pressed={};sendVel(0,0);};
+  b.onmouseleave=function(){if(Object.keys(pressed).length){pressed={};sendVel(0,0);}};
+  b.ontouchstart=function(e){e.preventDefault();this.onmousedown();};
+  b.ontouchend=function(e){e.preventDefault();this.onmouseup();};
+}
 
-document.querySelector('.center-btn').onclick=()=>{pressed.clear();sendVel(0,0);};
+document.querySelector('.center-btn').onclick=function(){pressed={};sendVel(0,0);};
 
-document.onkeydown=e=>{
-  if(e.repeat)return;  // 浏览器按键重复，忽略
-  const key=e.key.toLowerCase();
-  if(['w','s','a','d',' '].includes(key)){
+document.onkeydown=function(e){
+  if(e.repeat)return;
+  var key=e.key.toLowerCase();
+  if(key==='w'||key==='s'||key==='a'||key==='d'||key===' '){
     e.preventDefault();
-    if(pressed.has(key))return;
-    pressed.add(key);
+    if(pressed[key])return;
+    pressed[key]=true;
     applyKey(key);
   }
 };
 
-document.onkeyup=e=>{
-  const key=e.key.toLowerCase();
-  if(['w','s','a','d'].includes(key)){
-    pressed.delete(key);
-    // 只在所有方向键都松开时才停车
-    if(pressed.size===0) sendVel(0,0);
+document.onkeyup=function(e){
+  var key=e.key.toLowerCase();
+  if(key==='w'||key==='s'||key==='a'||key==='d'){
+    delete pressed[key];
+    var count=0;
+    for(var k in pressed)count++;
+    if(count===0) sendVel(0,0);
   }
 };
 
-// 窗口失焦时停车，避免按键卡住
-window.onblur=()=>{pressed.clear();sendVel(0,0);};
+window.onblur=function(){pressed={};sendVel(0,0);};
 
-// 轮询诊断信息
-async function loadDiag(){
-  try{
-    const res=await fetch('/api/teleop_status');
-    const d=await res.json();
-    const el=document.getElementById('diag');
-    if(d.rclpy){
-      el.innerHTML='<span style="color:#10b981">\u2713 rclpy \u76f4\u8fde\u53d1\u5e03\u5df2\u5c31\u7eea</span>';
-    }else if(d.error){
-      el.innerHTML='<span style="color:#ef4444">\u2717 '+d.error+'</span>';
+function loadDiag(){
+  fetch('/api/teleop_status').then(function(r){return r.json()}).then(function(d){
+    var el=document.getElementById('diag');
+    if(d.error){
+      el.innerHTML='<span style="color:#ef4444">✗ '+d.error+'</span>';
     }else{
-      el.innerHTML='<span style="color:#f59e0b">\u26a0 \u5b50\u8fdb\u7a0b\u6a21\u5f0f\u8fd0\u884c\u4e2d</span>';
+      el.innerHTML='<span style="color:#10b981">✓ 子进程发布运行中</span>';
     }
-  }catch(e){}
+  }).catch(function(){});
 }
 loadDiag();
-setInterval(loadDiag, 2000);
+setInterval(loadDiag,2000);
 </script>
 </body>
 </html>"""
@@ -266,7 +229,6 @@ class H(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path == '/api/teleop_status':
             status = {
-                "rclpy": _rclpy_ok if '_rclpy_ok' in globals() else False,
                 "vel": current_vel,
                 "error": last_error,
             }
