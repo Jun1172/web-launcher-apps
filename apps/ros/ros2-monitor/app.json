@@ -1,7 +1,7 @@
 {
   "id": "ros2-monitor",
   "name": "ROS2 监控",
-  "icon": "",
+  "icon": "📊",
   "color": "#10b981",
   "version": "1.0.0",
   "changelog": "实时监控 ROS2 节点、话题、服务状态。",

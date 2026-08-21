@@ -1,7 +1,7 @@
 {
   "id": "ros2-bag-manager",
   "name": "Bag 管理器",
-  "icon": "",
+  "icon": "📦",
   "color": "#ec4899",
   "version": "1.0.0",
   "changelog": "录制、播放和管理 rosbag2 文件。",

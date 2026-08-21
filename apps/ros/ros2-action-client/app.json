@@ -1,7 +1,7 @@
 {
   "id": "ros2-action-client",
   "name": "动作执行器",
-  "icon": "",
+  "icon": "🎯",
   "color": "#84cc16",
   "version": "1.0.0",
   "changelog": "发送 ROS2 Action 目标并监控反馈。",

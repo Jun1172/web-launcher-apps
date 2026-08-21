@@ -1,7 +1,7 @@
 {
   "id": "ros2-topic-inspector",
   "name": "话题查看器",
-  "icon": "",
+  "icon": "📡",
   "color": "#8b5cf6",
   "version": "1.0.0",
   "changelog": "实时查看 ROS2 话题消息。",

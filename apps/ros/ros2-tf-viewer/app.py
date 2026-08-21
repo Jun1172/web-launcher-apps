@@ -67,11 +67,16 @@ select{width:100%;padding:8px;border:1px solid #a5f3fc;border-radius:6px;margin-
 .data{background:#f0f9ff;padding:15px;border-radius:6px;font-family:monospace;font-size:14px}
 .data div{margin-bottom:8px}
 .label{color:#0369a1;font-weight:bold;display:inline-block;width:100px}
+.tip{background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;line-height:1.7;color:#78350f}
+.tip code{background:#fef3c7;padding:2px 6px;border-radius:4px;font-family:monospace;color:#92400e}
+.tip a{color:#2563eb;text-decoration:none}
+.tip a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
 <div class="container">
   <h2>📐 TF 坐标变换查看器</h2>
+  <div class="tip"><strong>💡 使用提示：</strong>没有坐标系数据？请打开 <a href="http://127.0.0.1:8200/" target="_blank">ROS2 演示节点</a> 启动「TF 发布器」，它会自动发布坐标变换供本页面读取。</div>
   <div class="card">
     <label>父坐标系 (Parent Frame)</label>
     <select id="parent"><option>加载中...</option></select>

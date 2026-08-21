@@ -78,11 +78,16 @@ button.stop{background:#ef4444}
 .message-data{font-family:monospace;font-size:13px;white-space:pre-wrap;word-break:break-all;background:#fff;padding:8px;border-radius:4px}
 .empty{color:#9ca3af;text-align:center;padding:40px}
 .stats{margin-top:10px;color:#6b7280;font-size:13px}
+.tip{background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;line-height:1.7;color:#78350f}
+.tip code{background:#fef3c7;padding:2px 6px;border-radius:4px;font-family:monospace;color:#92400e}
+.tip a{color:#2563eb;text-decoration:none}
+.tip a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
 <div class="container">
   <h2> 话题查看器</h2>
+  <div class="tip"><strong>💡 使用提示：</strong>没有话题可订阅？请先启动话题源：执行 <code>ros2 run demo_nodes_cpp talker</code>，或打开 <a href="http://127.0.0.1:8200/" target="_blank">ROS2 演示节点</a> 启动「话题发布者」。下方列表会自动检索当前可用话题。</div>
   <div class="controls">
     <select id="topic-select"><option value="">选择话题...</option></select>
     <button id="sub-btn" onclick="toggleSubscribe()">订阅</button>

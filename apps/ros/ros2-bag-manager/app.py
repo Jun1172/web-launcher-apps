@@ -29,6 +29,13 @@ play_proc = None
 def get_bags():
     return [os.path.basename(p) for p in glob.glob(os.path.join(bag_dir, "*")) if os.path.isdir(p)]
 
+def get_topics():
+    try:
+        result = subprocess.run("ros2 topic list", shell=True, capture_output=True, text=True, timeout=3)
+        return [t.strip() for t in result.stdout.strip().split("\n") if t.strip()]
+    except:
+        return []
+
 def get_bag_info(name):
     path = os.path.join(bag_dir, name)
     try:
@@ -77,17 +84,24 @@ button{padding:8px 16px;margin-right:10px;border:none;border-radius:6px;cursor:p
 .btn-rec{background:#ec4899}.btn-stop{background:#ef4444}.btn-play{background:#8b5cf6}
 pre{background:#f8fafc;padding:15px;border-radius:6px;font-size:13px;max-height:200px;overflow:auto}
 .status{padding:10px;background:#fce7f3;border-radius:6px;margin-bottom:15px;font-weight:bold}
+.topic-list{max-height:150px;overflow-y:auto;border:1px solid #fbcfe8;border-radius:6px;padding:8px;margin-bottom:10px}
+.tip{background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;line-height:1.7;color:#78350f}
+.tip code{background:#fef3c7;padding:2px 6px;border-radius:4px;font-family:monospace;color:#92400e}
+.tip a{color:#2563eb;text-decoration:none}
+.tip a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
 <div class="container">
   <h2>📦 Bag 管理器</h2>
+  <div class="tip"><strong>💡 使用提示：</strong>录制前需要先有话题在发布。可打开 <a href="http://127.0.0.1:8200/" target="_blank">ROS2 演示节点</a> 启动话题发布者，或执行 <code>ros2 run demo_nodes_cpp talker</code>。下方「录制话题」会自动检索当前可用话题，勾选要录制的话题即可。</div>
   
   <div class="card">
     <h3>录制</h3>
     <div class="status" id="rec-status">状态: 空闲</div>
-    <label>话题 (空格分隔)</label>
-    <input type="text" id="topics" placeholder="/chatter /cmd_vel">
+    <label>录制话题（勾选要录制的话题）</label>
+    <div id="topic-list" class="topic-list">加载中...</div>
+    <button onclick="loadTopics()" style="background:#3b82f6;color:#fff;border:none;border-radius:6px;padding:8px 16px;cursor:pointer;font-weight:bold;margin-bottom:15px">刷新话题列表</button>
     <button class="btn-rec" onclick="rec()">开始录制</button>
     <button class="btn-stop" onclick="stopRec()">停止</button>
   </div>
@@ -119,10 +133,18 @@ async function showInfo(name){
 }
 document.getElementById('bags').onchange=e=>showInfo(e.target.value);
 
+async function loadTopics(){
+  const res=await fetch('/api/topics');
+  const topics=await res.json();
+  const div=document.getElementById('topic-list');
+  if(topics.length===0){div.innerHTML='<span style="color:#9ca3af">暂无话题，请先启动话题源</span>'}
+  else{div.innerHTML=topics.map(t=>'<label style="display:block;padding:4px;cursor:pointer"><input type="checkbox" value="'+t+'" checked> '+t+'</label>').join('')}
+}
 async function rec(){
-  const topics=document.getElementById('topics').value.trim();
-  if(!topics)return alert('请输入话题');
-  await fetch('/api/record?topics='+encodeURIComponent(topics));
+  const checked=document.querySelectorAll('#topic-list input:checked');
+  const topics=Array.from(checked).map(c=>c.value);
+  if(topics.length===0)return alert('请至少选择一个话题');
+  await fetch('/api/record?topics='+encodeURIComponent(topics.join(' ')));
   document.getElementById('rec-status').textContent='状态: 录制中...';
 }
 async function stopRec(){
@@ -141,6 +163,7 @@ async function stopPlay(){
   document.getElementById('play-status').textContent='状态: 已停止';
 }
 loadBags();
+loadTopics();
 setInterval(()=>{
   fetch('/api/status').then(r=>r.json()).then(d=>{
     document.getElementById('rec-status').textContent='状态: '+(d.recording?'录制中...':'空闲');
@@ -159,6 +182,11 @@ class H(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps(get_bags()).encode())
+        elif parsed.path == '/api/topics':
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(get_topics()).encode())
         elif parsed.path.startswith('/api/info'):
             qs = parse_qs(parsed.query)
             name = qs.get('name', [''])[0]

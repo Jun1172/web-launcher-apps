@@ -52,11 +52,16 @@ textarea{height:100px}
 button{padding:10px 20px;background:#f59e0b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:bold}
 button:hover{background:#d97706}
 .result{background:#f8fafc;padding:15px;border-radius:6px;font-family:monospace;white-space:pre-wrap;min-height:50px}
+.tip{background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;line-height:1.7;color:#78350f}
+.tip code{background:#fef3c7;padding:2px 6px;border-radius:4px;font-family:monospace;color:#92400e}
+.tip a{color:#2563eb;text-decoration:none}
+.tip a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
 <div class="container">
   <h2>📞 ROS2 服务调用器</h2>
+  <div class="tip"><strong>💡 使用提示：</strong>没有服务可调用？请先启动服务：执行 <code>ros2 run demo_nodes_cpp add_two_ints_server</code>，或打开 <a href="http://127.0.0.1:8200/" target="_blank">ROS2 演示节点</a> 启动「服务服务器」。请求参数示例：<code>{a: 5, b: 3}</code>（YAML 格式）。</div>
   <div class="card">
     <label>选择服务</label>
     <select id="service" onchange="loadType()"><option value="">加载中...</option></select>

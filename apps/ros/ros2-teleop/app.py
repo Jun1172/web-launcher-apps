@@ -51,11 +51,16 @@ h2{color:#1e40af;margin-bottom:20px}
 input[type=range]{width:100%}
 .status{margin-top:20px;padding:15px;background:#f0f9ff;border-radius:8px;font-family:monospace;font-size:14px}
 .key-hint{margin-top:15px;color:#6b7280;font-size:13px}
+.tip{background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;line-height:1.7;color:#78350f}
+.tip code{background:#fef3c7;padding:2px 6px;border-radius:4px;font-family:monospace;color:#92400e}
+.tip a{color:#2563eb;text-decoration:none}
+.tip a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
 <div class="container">
   <h2>🎮 机器人遥控</h2>
+  <div class="tip"><strong>💡 使用提示：</strong>需要机器人订阅 <code>/cmd_vel</code> 话题。可启动 turtlesim 测试：执行 <code>ros2 run turtlesim turtlesim_node</code>，然后用本页面控制乌龟移动。</div>
   <div class="joystick">
     <button class="direction-btn up" data-key="w">↑</button>
     <button class="direction-btn down" data-key="s">↓</button>

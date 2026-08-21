@@ -70,11 +70,16 @@ h2{color:#065f46;margin-bottom:20px}
 .item{padding:8px;margin:5px 0;background:#f0fdf4;border-radius:6px;font-size:13px;font-family:monospace}
 .count{background:#10b981;color:#fff;padding:2px 8px;border-radius:12px;font-size:12px;margin-left:8px}
 .update-time{color:#6b7280;font-size:12px;margin-top:10px}
+.tip{background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;line-height:1.7;color:#78350f}
+.tip code{background:#fef3c7;padding:2px 6px;border-radius:4px;font-family:monospace;color:#92400e}
+.tip a{color:#2563eb;text-decoration:none}
+.tip a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
 <div class="container">
   <h2>📊 ROS2 系统监控</h2>
+  <div class="tip"><strong>💡 使用提示：</strong>需要先 source ROS2 环境：执行 <code>source /opt/ros/humble/setup.bash</code>。若列表为空说明当前没有节点运行，可打开 <a href="http://127.0.0.1:8200/" target="_blank">ROS2 演示节点</a> 启动节点。</div>
   <div class="grid">
     <div class="card">
       <h3>🔷 节点 <span class="count" id="node-count">0</span></h3>

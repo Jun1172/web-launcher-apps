@@ -63,11 +63,16 @@ select,input{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;m
 button{padding:10px 20px;background:#64748b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:bold}
 button:hover{background:#475569}
 .val-display{background:#f1f5f9;padding:10px;border-radius:6px;font-family:monospace;margin-bottom:15px}
+.tip{background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;line-height:1.7;color:#78350f}
+.tip code{background:#fef3c7;padding:2px 6px;border-radius:4px;font-family:monospace;color:#92400e}
+.tip a{color:#2563eb;text-decoration:none}
+.tip a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
 <div class="container">
   <h2>️ ROS2 参数编辑器</h2>
+  <div class="tip"><strong>💡 使用提示：</strong>没有节点显示？请先启动带参数的节点：执行 <code>ros2 run demo_nodes_cpp parameter_blackboard</code>，或打开 <a href="http://127.0.0.1:8200/" target="_blank">ROS2 演示节点</a> 启动「参数节点」。</div>
   <div class="card">
     <label>选择节点</label>
     <select id="node" onchange="loadParams()"><option>加载中...</option></select>
