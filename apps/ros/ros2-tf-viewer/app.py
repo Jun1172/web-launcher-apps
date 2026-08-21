@@ -20,44 +20,98 @@ def get_port():
 
 PORT = get_port()
 
+import threading
+
+_tf_error = ""
+_rclpy_ok = False
+
+# === 优先用 rclpy + tf2_ros 直接读 TF buffer (零延迟，无需解析子进程输出) ===
+try:
+    import rclpy
+    from rclpy.node import Node
+    from tf2_ros import TransformListener, Buffer
+    try:
+        rclpy.init()
+        _tf_node = rclpy.create_node("web_tf_viewer")
+        _tf_buffer = Buffer()
+        _tf_listener = TransformListener(_tf_buffer, _tf_node)
+        threading.Thread(target=lambda: rclpy.spin(_tf_node), daemon=True).start()
+        _rclpy_ok = True
+    except Exception as _e:
+        _tf_error = f"rclpy/tf2 init failed: {_e}"
+
+except (ImportError, Exception):
+    _tf_error = "rclpy or tf2_ros not available, using subprocess fallback"
+
+
 def get_frames():
-    """从 /tf 和 /tf_static 提取所有坐标系名。
-    注意: 不能用 --no-arr，否则 transforms 数组被折叠，frame_id/child_frame_id 全部隐藏。
-    """
+    """获取所有坐标系名。rclpy 直读 TF buffer；回退用 ros2 topic echo。"""
+    if _rclpy_ok:
+        try:
+            import time as _t
+            _t.sleep(0.3)  # 给 listener 时间接收 /tf
+            yaml_str = _tf_buffer.all_frames_as_yaml()
+            frames = set()
+            for line in yaml_str.split("\n"):
+                line = line.strip()
+                if line.endswith(":"):
+                    frames.add(line[:-1].strip())
+                elif line.startswith("- "):
+                    frames.add(line[2:].strip())
+            return sorted(frames)
+        except Exception:
+            return []
+
+    # 回退: ros2 topic echo
     frames = set()
-    for topic in ['/tf', '/tf_static']:
+    for topic in ["/tf", "/tf_static"]:
         try:
             res = subprocess.run(
                 f"ros2 topic echo {topic} --once",
-                shell=True, capture_output=True, text=True, timeout=3
+                shell=True, capture_output=True, text=True, timeout=5,
             )
-            # child_frame_id 必须先匹配 (它包含 frame_id 子串)
-            for m in re.finditer(r'child_frame_id:\s*(\S+)', res.stdout):
+            for m in re.finditer(r"child_frame_id:\s*(\S+)", res.stdout):
                 frames.add(m.group(1).strip("'\""))
-            # 负向先行断言: 排除 child_frame_id
-            for m in re.finditer(r'(?<!child_)frame_id:\s*(\S+)', res.stdout):
+            for m in re.finditer(r"(?<!child_)frame_id:\s*(\S+)", res.stdout):
                 frames.add(m.group(1).strip("'\""))
         except Exception:
             pass
     return sorted(frames)
 
+
 def get_tf_echo(parent, child):
+    """获取 parent->child 变换。rclpy lookup_transform；回退用 tf2_echo 子进程。"""
+    if _rclpy_ok:
+        try:
+            from rclpy.time import Time
+            trans = _tf_buffer.lookup_transform(parent, child, Time())
+            t = trans.transform.translation
+            r = trans.transform.rotation
+            return {
+                "raw": f"Translation: [{t.x}, {t.y}, {t.z}]\n"
+                       f"Rotation: in Quaternion [{r.x}, {r.y}, {r.z}, {r.w}]",
+                "translation": f"[{t.x}, {t.y}, {t.z}]",
+                "quaternion": f"[{r.x}, {r.y}, {r.z}, {r.w}]",
+            }
+        except Exception as e:
+            return {"raw": str(e), "translation": "", "quaternion": ""}
+
+    # 回退: tf2_echo 子进程
     try:
         cmd = f"ros2 run tf2_ros tf2_echo {parent} {child}"
         proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         try:
-            out, _ = proc.communicate(timeout=3)
+            out, _ = proc.communicate(timeout=5)
         except subprocess.TimeoutExpired:
             proc.kill()
             out, _ = proc.communicate()
         out = (out or "").strip()
-        # Translation / Rotation 各自单独一行，必须在整个输出里搜索
-        trans = re.search(r'Translation:\s*\[^\]]*\]', out)
-        rot = re.search(r'Rotation: in Quaternion \[^\]]*\]', out)
+        trans = re.search(r"Translation:\s*\[^\]]*\]", out)
+        rot = re.search(r"Rotation: in Quaternion \[^\]]*\]", out)
         return {
             "raw": out[-800:],
             "translation": trans.group(0) if trans else "",
-            "quaternion": rot.group(0) if rot else ""
+            "quaternion": rot.group(0) if rot else "",
         }
     except Exception as e:
         return {"raw": str(e), "translation": "", "quaternion": ""}
@@ -93,6 +147,7 @@ select{width:100%;padding:8px;border:1px solid #a5f3fc;border-radius:6px;margin-
     <select id="child"><option>加载中...</option></select>
     <button onclick="update()" style="padding:10px 20px;background:#06b6d4;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:bold">刷新</button>
   </div>
+  <div id="diag" style="padding:8px 12px;background:#f0f9ff;border-radius:6px;font-size:12px;color:#155e75;margin-bottom:12px"></div>
   <div class="card">
     <h3>实时变换数据</h3>
     <div class="data" id="data">
@@ -103,26 +158,48 @@ select{width:100%;padding:8px;border:1px solid #a5f3fc;border-radius:6px;margin-
   </div>
 </div>
 <script>
-async function loadFrames(){
-  const res=await fetch('/api/frames');
-  const data=await res.json();
-  const opts=data.map(f=>`<option value="${f}">${f}</option>`).join('');
-  document.getElementById('parent').innerHTML=opts||'<option>无数据</option>';
-  document.getElementById('child').innerHTML=opts||'<option>无数据</option>';
+var updating=false;
+function loadFrames(){
+  fetch('/api/frames').then(function(r){return r.json()}).then(function(data){
+    var opts='';
+    for(var i=0;i<data.length;i++){
+      opts+='<option value="'+data[i]+'">'+data[i]+'</option>';
+    }
+    document.getElementById('parent').innerHTML=opts||'<option>无数据</option>';
+    document.getElementById('child').innerHTML=opts||'<option>无数据</option>';
+  }).catch(function(e){console.log('loadFrames error:',e)});
 }
-async function update(){
-  const p=document.getElementById('parent').value;
-  const c=document.getElementById('child').value;
-  if(!p||!c)return;
-  const res=await fetch(`/api/echo?parent=${encodeURIComponent(p)}&child=${encodeURIComponent(c)}`);
-  const data=await res.json();
-  document.getElementById('trans').textContent=data.translation||'计算中...';
-  document.getElementById('quat').textContent=data.quaternion||'计算中...';
-  document.getElementById('raw').textContent=data.raw||'无数据';
+function update(){
+  if(updating)return;
+  var p=document.getElementById('parent').value;
+  var c=document.getElementById('child').value;
+  if(!p||!c||p==='无数据'||c==='无数据')return;
+  updating=true;
+  fetch('/api/echo?parent='+encodeURIComponent(p)+'&child='+encodeURIComponent(c))
+    .then(function(r){return r.json()})
+    .then(function(data){
+      document.getElementById('trans').textContent=data.translation||'计算中...';
+      document.getElementById('quat').textContent=data.quaternion||'计算中...';
+      document.getElementById('raw').textContent=data.raw||'无数据';
+      updating=false;
+    })
+    .catch(function(e){console.log('update error:',e);updating=false});
+}
+function loadDiag(){
+  fetch('/api/tf_status').then(function(r){return r.json()}).then(function(d){
+    var el=document.getElementById('diag');
+    if(d.rclpy){
+      el.innerHTML='<span style="color:#10b981">\u2713 rclpy + tf2_ros \u76f4\u8fde\u5df2\u5c31\u7eea</span>';
+    }else if(d.error){
+      el.innerHTML='<span style="color:#f59e0b">\u26a0 '+d.error+'</span>';
+    }
+  }).catch(function(){});
 }
 loadFrames();
-setInterval(loadFrames, 5000);
-setInterval(update, 1000);
+loadDiag();
+setInterval(loadFrames,3000);
+setInterval(update,1000);
+setInterval(loadDiag,3000);
 </script>
 </body>
 </html>"""
@@ -130,7 +207,15 @@ setInterval(update, 1000);
 class H(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
-        if parsed.path == '/api/frames':
+        if parsed.path == '/api/tf_status':
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(json.dumps(
+                {"rclpy": _rclpy_ok, "error": _tf_error},
+                ensure_ascii=False
+            ).encode("utf-8"))
+        elif parsed.path == '/api/frames':
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()

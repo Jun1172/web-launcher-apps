@@ -97,65 +97,75 @@ button.stop{background:#ef4444}
   <div class="messages" id="messages"><div class="empty">选择话题并点击订阅</div></div>
 </div>
 <script>
-let subscribed=false;
-let currentTopic='';   // 当前正在订阅的话题
-let refreshInterval=null;
+var subscribed=false;
+var currentTopic='';
+var refreshInterval=null;
 
-async function loadTopics(){
-  const res=await fetch('/api/topics');
-  const topics=await res.json();
-  const select=document.getElementById('topic-select');
-  // 保留当前选中的话题
-  const prev=select.value;
-  select.innerHTML='<option value="">选择话题...</option>'+topics.map(t=>`<option value="${t}">${t}</option>`).join('');
-  if(prev && [...select.options].some(o=>o.value===prev)){
-    select.value=prev;
-  }
+function loadTopics(){
+  fetch('/api/topics').then(function(r){return r.json()}).then(function(topics){
+    var sel=document.getElementById('topic-select');
+    var prev=sel.value;
+    var html='<option value="">选择话题...</option>';
+    for(var i=0;i<topics.length;i++){
+      html+='<option value="'+topics[i]+'">'+topics[i]+'</option>';
+    }
+    sel.innerHTML=html;
+    // 尝试恢复之前选中的话题
+    if(prev){
+      for(var j=0;j<sel.options.length;j++){
+        if(sel.options[j].value===prev){sel.value=prev;break;}
+      }
+    }
+  }).catch(function(e){console.log('loadTopics error:',e)});
 }
 
-async function toggleSubscribe(){
-  const btn=document.getElementById('sub-btn');
+function toggleSubscribe(){
+  var btn=document.getElementById('sub-btn');
   if(!subscribed){
-    // ── 订阅：必须选择话题 ──
-    const select=document.getElementById('topic-select');
-    const picked=select.value;
-    if(!picked) return alert('请先选择话题');
+    var sel=document.getElementById('topic-select');
+    var picked=sel.value;
+    if(!picked){alert('请先选择话题');return;}
     currentTopic=picked;
     subscribed=true;
     btn.textContent='停止';
     btn.classList.add('stop');
-    await fetch('/api/subscribe?topic='+encodeURIComponent(currentTopic));
+    fetch('/api/subscribe?topic='+encodeURIComponent(currentTopic));
     refreshInterval=setInterval(refreshMessages,500);
   }else{
-    // ── 停止：用之前订阅的话题直接退订，不再要求选择 ──
     subscribed=false;
     btn.textContent='订阅';
     btn.classList.remove('stop');
-    if(refreshInterval){ clearInterval(refreshInterval); refreshInterval=null; }
+    if(refreshInterval){clearInterval(refreshInterval);refreshInterval=null;}
     if(currentTopic){
-      await fetch('/api/unsubscribe?topic='+encodeURIComponent(currentTopic));
+      fetch('/api/unsubscribe?topic='+encodeURIComponent(currentTopic));
     }
     currentTopic='';
   }
 }
 
-async function refreshMessages(){
-  if(!currentTopic) return;
-  const res=await fetch('/api/messages?topic='+encodeURIComponent(currentTopic));
-  const data=await res.json();
-  const msgsDiv=document.getElementById('messages');
-  if(data.length===0){
-    msgsDiv.innerHTML='<div class="empty">等待消息...</div>';
-  }else{
-    msgsDiv.innerHTML=data.map(m=>`
-      <div class="message">
-        <div class="message-time"> ${m.time}</div>
-        <div class="message-data">${m.data}</div>
-      </div>
-    `).join('');
-    msgsDiv.scrollTop=msgsDiv.scrollHeight;
-  }
-  document.getElementById('stats').textContent=`已接收 ${data.length} 条消息`;
+function refreshMessages(){
+  if(!currentTopic)return;
+  fetch('/api/messages?topic='+encodeURIComponent(currentTopic))
+    .then(function(r){return r.json()})
+    .then(function(data){
+      var msgsDiv=document.getElementById('messages');
+      if(data.length===0){
+        msgsDiv.innerHTML='<div class="empty">等待消息...</div>';
+      }else{
+        var html='';
+        for(var i=0;i<data.length;i++){
+          var m=data[i];
+          html+='<div class="message">'+
+            '<div class="message-time">'+m.time+'</div>'+
+            '<div class="message-data">'+m.data+'</div>'+
+            '</div>';
+        }
+        msgsDiv.innerHTML=html;
+        msgsDiv.scrollTop=msgsDiv.scrollHeight;
+      }
+      document.getElementById('stats').textContent='已接收 '+data.length+' 条消息';
+    })
+    .catch(function(e){console.log('refresh error:',e)});
 }
 
 function clearMessages(){

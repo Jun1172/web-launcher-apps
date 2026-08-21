@@ -21,47 +21,112 @@ def get_port():
 PORT = get_port()
 
 current_vel = {"linear_x": 0.0, "linear_y": 0.0, "angular_z": 0.0}
-pub_proc = None
-pub_lock = threading.Lock()
+last_error = ""   # 最近的错误信息，供前端诊断
 
-def _kill_pub():
-    """杀掉当前持续发布进程。"""
-    global pub_proc
-    if pub_proc is not None:
-        try:
-            pub_proc.terminate()
-            try: pub_proc.wait(timeout=1)
+# === 优先用 rclpy 直接发布 (零延迟)，不可用时回退到 ros2 topic pub ===
+try:
+    import rclpy
+    from rclpy.node import Node
+    from geometry_msgs.msg import Twist as TwistMsg
+    _rclpy_ok = False
+    try:
+        rclpy.init()
+        _teleop_node = rclpy.create_node("web_teleop")
+        _vel_pub = _teleop_node.create_publisher(TwistMsg, "/cmd_vel", 10)
+        threading.Thread(target=lambda: rclpy.spin(_teleop_node), daemon=True).start()
+        _rclpy_ok = True
+    except Exception as _e:
+        last_error = f"rclpy init failed: {_e}"
+
+    if _rclpy_ok:
+        def update_vel(linear_x, linear_y, angular_z):
+            """rclpy 直发：立即更新 + 10Hz 后台循环持续发布。"""
+            global current_vel
+            current_vel = {"linear_x": linear_x, "linear_y": linear_y, "angular_z": angular_z}
+            msg = TwistMsg()
+            msg.linear.x = linear_x
+            msg.linear.y = linear_y
+            msg.angular.z = angular_z
+            _vel_pub.publish(msg)
+
+        # 后台 10Hz 持续发布，让乌龟持续移动
+        def _pub_loop():
+            import time as _t
+            while True:
+                try:
+                    msg = TwistMsg()
+                    msg.linear.x = current_vel["linear_x"]
+                    msg.linear.y = current_vel["linear_y"]
+                    msg.angular.z = current_vel["angular_z"]
+                    _vel_pub.publish(msg)
+                except Exception:
+                    pass
+                _t.sleep(0.1)
+        threading.Thread(target=_pub_loop, daemon=True).start()
+
+        import atexit
+        atexit.register(lambda: (rclpy.ok() and rclpy.shutdown()))
+
+    else:
+        raise ImportError("rclpy not available")
+
+except (ImportError, Exception):
+    # === 回退：用 ros2 topic pub -r 10 (有启动延迟) ===
+    pub_proc = None
+    pub_lock = threading.Lock()
+
+    def _kill_pub():
+        global pub_proc
+        if pub_proc is not None:
+            try:
+                pub_proc.terminate()
+                try: pub_proc.wait(timeout=1)
+                except Exception:
+                    try: pub_proc.kill()
+                    except Exception: pass
             except Exception:
-                try: pub_proc.kill()
-                except Exception: pass
-        except Exception:
-            pass
-        pub_proc = None
-
-def update_vel(linear_x, linear_y, angular_z):
-    """更新目标速度，并重启 10Hz 持续发布进程。
-    turtlesim 乌龟会按最后收到的 Twist 持续移动，所以必须持续发布，
-    否则按钮松开后乌龟不会停（或单次发布延迟 1-2s 才生效，体感像没反应）。
-    """
-    global current_vel, pub_proc
-    current_vel = {"linear_x": linear_x, "linear_y": linear_y, "angular_z": angular_z}
-    with pub_lock:
-        _kill_pub()
-        is_win = platform.system() == "Windows"
-        cmd = (f'ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist '
-               f'"{{linear: {{x: {linear_x}, y: {linear_y}, z: 0.0}}, '
-               f'angular: {{x: 0.0, y: 0.0, z: {angular_z}}}}}"')
-        try:
-            pub_proc = subprocess.Popen(
-                cmd, shell=True,
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                creationflags=subprocess.CREATE_NO_WINDOW if is_win else 0
-            )
-        except Exception:
+                pass
             pub_proc = None
 
-import atexit
-atexit.register(_kill_pub)
+    def update_vel(linear_x, linear_y, angular_z):
+        """子进程发布：kill+重启 ros2 topic pub -r 10。"""
+        global current_vel, pub_proc, last_error
+        current_vel = {"linear_x": linear_x, "linear_y": linear_y, "angular_z": angular_z}
+        with pub_lock:
+            _kill_pub()
+            is_win = platform.system() == "Windows"
+            cmd = (f'ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist '
+                   f'"{{linear: {{x: {linear_x}, y: {linear_y}, z: 0.0}}, '
+                   f'angular: {{x: 0.0, y: 0.0, z: {angular_z}}}}}"')
+            try:
+                pub_proc = subprocess.Popen(
+                    cmd, shell=True,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    creationflags=subprocess.CREATE_NO_WINDOW if is_win else 0
+                )
+            except Exception as e:
+                last_error = f"Popen failed: {e}"
+                pub_proc = None
+
+    # 后台线程检测子进程是否意外退出，捕获 stderr
+    def _watch_pub():
+        import time as _t
+        global last_error
+        while True:
+            if pub_proc is not None:
+                rc = pub_proc.poll()
+                if rc is not None:
+                    try:
+                        err = pub_proc.stderr.read().decode("utf-8", errors="ignore").strip()
+                        if err:
+                            last_error = f"ros2 topic pub exited({rc}): {err[:300]}"
+                    except Exception:
+                        pass
+            _t.sleep(1)
+    threading.Thread(target=_watch_pub, daemon=True).start()
+
+    import atexit
+    atexit.register(_kill_pub)
 
 HTML = r"""<!DOCTYPE html>
 <html>
@@ -174,6 +239,24 @@ document.onkeyup=e=>{
 
 // 窗口失焦时停车，避免按键卡住
 window.onblur=()=>{pressed.clear();sendVel(0,0);};
+
+// 轮询诊断信息
+async function loadDiag(){
+  try{
+    const res=await fetch('/api/teleop_status');
+    const d=await res.json();
+    const el=document.getElementById('diag');
+    if(d.rclpy){
+      el.innerHTML='<span style="color:#10b981">\u2713 rclpy \u76f4\u8fde\u53d1\u5e03\u5df2\u5c31\u7eea</span>';
+    }else if(d.error){
+      el.innerHTML='<span style="color:#ef4444">\u2717 '+d.error+'</span>';
+    }else{
+      el.innerHTML='<span style="color:#f59e0b">\u26a0 \u5b50\u8fdb\u7a0b\u6a21\u5f0f\u8fd0\u884c\u4e2d</span>';
+    }
+  }catch(e){}
+}
+loadDiag();
+setInterval(loadDiag, 2000);
 </script>
 </body>
 </html>"""
@@ -181,7 +264,17 @@ window.onblur=()=>{pressed.clear();sendVel(0,0);};
 class H(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
-        if parsed.path == '/api/vel':
+        if parsed.path == '/api/teleop_status':
+            status = {
+                "rclpy": _rclpy_ok if '_rclpy_ok' in globals() else False,
+                "vel": current_vel,
+                "error": last_error,
+            }
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(json.dumps(status, ensure_ascii=False).encode("utf-8"))
+        elif parsed.path == '/api/vel':
             qs = parse_qs(parsed.query)
             lx = float(qs.get('lx', [0])[0])
             ly = float(qs.get('ly', [0])[0])
