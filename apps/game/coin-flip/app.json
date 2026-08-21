@@ -1,0 +1,13 @@
+{
+  "id": "coin-flip",
+  "name": "抛硬币",
+  "icon": "🪙",
+  "color": "#22c55e",
+  "version": "1.0.0",
+  "changelog": "真实随机抛硬币动画，统计正反面次数和连续结果。",
+  "port": 8172,
+  "cmd": ["apps/game/coin-flip/app.py"],
+  "dock": false,
+  "system": false,
+  "group": "game"
+}

@@ -39,9 +39,10 @@ def system_ping_once(host, timeout=2):
             cmd = ["ping", "-n", "1", "-w", str(int(timeout * 1000)), host]
         else:
             cmd = ["ping", "-c", "1", "-W", str(int(timeout)), host]
+        encoding = "gbk" if IS_WIN else "utf-8"
         r = subprocess.run(
-            cmd, capture_output=True, text=True,
-            timeout=timeout + 3, encoding="utf-8", errors="replace",
+          cmd, capture_output=True, text=True,
+          timeout=timeout + 3, encoding=encoding, errors="replace",
         )
         out = (r.stdout or "") + (r.stderr or "")
         # 超时/不可达检测

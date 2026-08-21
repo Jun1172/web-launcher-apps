@@ -1,0 +1,13 @@
+{
+  "id": "cyber-wood-fish",
+  "name": "赛博电子木鱼",
+  "icon": "🪵",
+  "color": "#f59e0b",
+  "version": "1.0.0",
+  "changelog": "点击木鱼积累功德，支持空格键、回车键和触摸操作。",
+  "port": 8171,
+  "cmd": ["apps/game/cyber-wood-fish/app.py"],
+  "dock": false,
+  "system": false,
+  "group": "game"
+}
