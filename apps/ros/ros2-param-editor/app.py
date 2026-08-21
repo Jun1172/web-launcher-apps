@@ -95,7 +95,10 @@ let currentParam='';
 async function loadNodes(){
   const res=await fetch('/api/nodes');
   const data=await res.json();
-  document.getElementById('node').innerHTML=data.map(n=>`<option value="${n}">${n}</option>`).join('')||'<option>无节点</option>';
+  const sel=document.getElementById('node');
+  const prev=sel.value;
+  sel.innerHTML=data.map(n=>`<option value="${n}">${n}</option>`).join('')||'<option>无节点</option>';
+  if(prev && data.includes(prev)) sel.value=prev;
 }
 async function loadParams(){
   const node=document.getElementById('node').value;

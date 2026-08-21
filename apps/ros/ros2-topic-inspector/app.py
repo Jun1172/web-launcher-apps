@@ -98,39 +98,50 @@ button.stop{background:#ef4444}
 </div>
 <script>
 let subscribed=false;
-let topic='';
+let currentTopic='';   // 当前正在订阅的话题
 let refreshInterval=null;
 
 async function loadTopics(){
   const res=await fetch('/api/topics');
   const topics=await res.json();
   const select=document.getElementById('topic-select');
+  // 保留当前选中的话题
+  const prev=select.value;
   select.innerHTML='<option value="">选择话题...</option>'+topics.map(t=>`<option value="${t}">${t}</option>`).join('');
+  if(prev && [...select.options].some(o=>o.value===prev)){
+    select.value=prev;
+  }
 }
 
 async function toggleSubscribe(){
-  const select=document.getElementById('topic-select');
-  topic=select.value;
-  if(!topic) return alert('请选择话题');
-  
-  subscribed=!subscribed;
   const btn=document.getElementById('sub-btn');
-  if(subscribed){
+  if(!subscribed){
+    // ── 订阅：必须选择话题 ──
+    const select=document.getElementById('topic-select');
+    const picked=select.value;
+    if(!picked) return alert('请先选择话题');
+    currentTopic=picked;
+    subscribed=true;
     btn.textContent='停止';
     btn.classList.add('stop');
-    await fetch('/api/subscribe?topic='+encodeURIComponent(topic));
+    await fetch('/api/subscribe?topic='+encodeURIComponent(currentTopic));
     refreshInterval=setInterval(refreshMessages,500);
   }else{
+    // ── 停止：用之前订阅的话题直接退订，不再要求选择 ──
+    subscribed=false;
     btn.textContent='订阅';
     btn.classList.remove('stop');
-    await fetch('/api/unsubscribe?topic='+encodeURIComponent(topic));
-    clearInterval(refreshInterval);
+    if(refreshInterval){ clearInterval(refreshInterval); refreshInterval=null; }
+    if(currentTopic){
+      await fetch('/api/unsubscribe?topic='+encodeURIComponent(currentTopic));
+    }
+    currentTopic='';
   }
 }
 
 async function refreshMessages(){
-  if(!topic) return;
-  const res=await fetch('/api/messages?topic='+encodeURIComponent(topic));
+  if(!currentTopic) return;
+  const res=await fetch('/api/messages?topic='+encodeURIComponent(currentTopic));
   const data=await res.json();
   const msgsDiv=document.getElementById('messages');
   if(data.length===0){

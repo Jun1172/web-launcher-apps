@@ -1,5 +1,5 @@
 """ros2-teleop —— Web 机器人遥控"""
-import json, os, subprocess, threading
+import json, os, subprocess, threading, platform
 from pathlib import Path
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -21,14 +21,47 @@ def get_port():
 PORT = get_port()
 
 current_vel = {"linear_x": 0.0, "linear_y": 0.0, "angular_z": 0.0}
+pub_proc = None
+pub_lock = threading.Lock()
 
-def publish_vel(linear_x, linear_y, angular_z):
-    """发布速度指令到 /cmd_vel"""
-    try:
-        cmd = f'ros2 topic pub -1 /cmd_vel geometry_msgs/msg/Twist "{{linear: {{x: {linear_x}, y: {linear_y}, z: 0.0}}, angular: {{x: 0.0, y: 0.0, z: {angular_z}}}}}"'
-        subprocess.run(cmd, shell=True, capture_output=True, timeout=2)
-    except:
-        pass
+def _kill_pub():
+    """杀掉当前持续发布进程。"""
+    global pub_proc
+    if pub_proc is not None:
+        try:
+            pub_proc.terminate()
+            try: pub_proc.wait(timeout=1)
+            except Exception:
+                try: pub_proc.kill()
+                except Exception: pass
+        except Exception:
+            pass
+        pub_proc = None
+
+def update_vel(linear_x, linear_y, angular_z):
+    """更新目标速度，并重启 10Hz 持续发布进程。
+    turtlesim 乌龟会按最后收到的 Twist 持续移动，所以必须持续发布，
+    否则按钮松开后乌龟不会停（或单次发布延迟 1-2s 才生效，体感像没反应）。
+    """
+    global current_vel, pub_proc
+    current_vel = {"linear_x": linear_x, "linear_y": linear_y, "angular_z": angular_z}
+    with pub_lock:
+        _kill_pub()
+        is_win = platform.system() == "Windows"
+        cmd = (f'ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist '
+               f'"{{linear: {{x: {linear_x}, y: {linear_y}, z: 0.0}}, '
+               f'angular: {{x: 0.0, y: 0.0, z: {angular_z}}}}}"')
+        try:
+            pub_proc = subprocess.Popen(
+                cmd, shell=True,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                creationflags=subprocess.CREATE_NO_WINDOW if is_win else 0
+            )
+        except Exception:
+            pub_proc = None
+
+import atexit
+atexit.register(_kill_pub)
 
 HTML = r"""<!DOCTYPE html>
 <html>
@@ -93,35 +126,54 @@ async function sendVel(linear_x,angular_z){
   await fetch('/api/vel?lx='+linear_x+'&ly=0&az='+angular_z);
 }
 
+const pressed=new Set();  // 避免按住键时 keydown 重复触发
+
+function applyKey(key){
+  if(key==='w') sendVel(speed,0);
+  else if(key==='s') sendVel(-speed,0);
+  else if(key==='a') sendVel(0,speed);
+  else if(key==='d') sendVel(0,-speed);
+  else if(key===' ') sendVel(0,0);
+}
+
 document.querySelectorAll('.direction-btn').forEach(btn=>{
   btn.onmousedown=()=>{
     const key=btn.dataset.key;
-    if(key==='w') sendVel(speed,0);
-    else if(key==='s') sendVel(-speed,0);
-    else if(key==='a') sendVel(0,speed);
-    else if(key==='d') sendVel(0,-speed);
+    if(pressed.has(key))return;
+    pressed.add(key);
+    applyKey(key);
   };
-  btn.onmouseup=()=>sendVel(0,0);
-  btn.onmouseleave=()=>sendVel(0,0);
+  btn.onmouseup=()=>{pressed.clear();sendVel(0,0);};
+  btn.onmouseleave=()=>{if(pressed.size){pressed.clear();sendVel(0,0);}};
+  // 触摸支持
+  btn.ontouchstart=e=>{e.preventDefault();btn.onmousedown();};
+  btn.ontouchend=e=>{e.preventDefault();btn.onmouseup();};
 });
 
-document.querySelector('.center-btn').onclick=()=>sendVel(0,0);
+document.querySelector('.center-btn').onclick=()=>{pressed.clear();sendVel(0,0);};
 
 document.onkeydown=e=>{
+  if(e.repeat)return;  // 浏览器按键重复，忽略
   const key=e.key.toLowerCase();
-  if(key==='w'||key==='s'||key==='a'||key==='d'||key===' '){
-    if(key==='w') sendVel(speed,0);
-    else if(key==='s') sendVel(-speed,0);
-    else if(key==='a') sendVel(0,speed);
-    else if(key==='d') sendVel(0,-speed);
-    else if(key===' ') sendVel(0,0);
+  if(['w','s','a','d',' '].includes(key)){
+    e.preventDefault();
+    if(pressed.has(key))return;
+    pressed.add(key);
+    applyKey(key);
   }
 };
 
 document.onkeyup=e=>{
   const key=e.key.toLowerCase();
-  if(['w','s','a','d'].includes(key)) sendVel(0,0);
+  if(['w','s','a','d'].includes(key)){
+    pressed.delete(key);
+    // 只在所有方向键都松开时才停车
+    if(pressed.size===0) sendVel(0,0);
+  }
 };
+
+// 窗口失焦时停车，避免按键卡住
+window.onblur=()=>{pressed.clear();sendVel(0,0);};
 </script>
 </body>
 </html>"""
@@ -134,7 +186,7 @@ class H(BaseHTTPRequestHandler):
             lx = float(qs.get('lx', [0])[0])
             ly = float(qs.get('ly', [0])[0])
             az = float(qs.get('az', [0])[0])
-            threading.Thread(target=publish_vel, args=(lx, ly, az), daemon=True).start()
+            threading.Thread(target=update_vel, args=(lx, ly, az), daemon=True).start()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()

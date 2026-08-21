@@ -37,6 +37,40 @@ def call_service(name, req_type, args):
     cmd = f'ros2 service call {name} {req_type} "{args}"'
     return run_cmd(cmd)
 
+def get_service_interface(req_type):
+    """获取服务接口定义，返回 (raw_text, request_fields, response_fields)。
+    request_fields: [{"type": "int32", "name": "a", "default": ""}, ...]
+    """
+    if not req_type:
+        return "", [], []
+    raw = run_cmd(f"ros2 interface show {req_type}")
+    if not raw:
+        return "", [], []
+    parts = raw.split("---")
+    req_section = parts[0].strip() if len(parts) > 0 else ""
+    resp_section = parts[1].strip() if len(parts) > 1 else ""
+
+    def parse_fields(section):
+        fields = []
+        for line in section.split("\n"):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                # 保留注释行作为说明
+                if line.startswith("#"):
+                    fields.append({"type": "comment", "name": line, "default": ""})
+                continue
+            # 形如: int32 a   或  string name 'default'  或  float64 x 0.0
+            tokens = line.split()
+            ftype = tokens[0] if tokens else ""
+            fname = tokens[1] if len(tokens) > 1 else ""
+            default = ""
+            if len(tokens) > 2:
+                default = " ".join(tokens[2:])
+            fields.append({"type": ftype, "name": fname, "default": default})
+        return fields
+
+    return raw, parse_fields(req_section), parse_fields(resp_section)
+
 HTML = r"""<!DOCTYPE html>
 <html>
 <head>
@@ -52,6 +86,14 @@ textarea{height:100px}
 button{padding:10px 20px;background:#f59e0b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:bold}
 button:hover{background:#d97706}
 .result{background:#f8fafc;padding:15px;border-radius:6px;font-family:monospace;white-space:pre-wrap;min-height:50px}
+.fields{width:100%;border-collapse:collapse;margin-bottom:15px;font-size:13px}
+.fields th,.fields td{border:1px solid #fde68a;padding:6px 10px;text-align:left}
+.fields th{background:#fef3c7;color:#78350f}
+.fields td.ftype{font-family:monospace;color:#92400e;font-weight:bold}
+.fields td.fname{font-family:monospace;color:#1e293b}
+.fields td.fdef{font-family:monospace;color:#64748b;font-size:12px}
+.fill-btn{background:#3b82f6!important;color:#fff!important;border:none!important;border-radius:4px!important;padding:4px 10px!important;cursor:pointer;font-size:12px;margin-left:8px}
+.no-fields{color:#9ca3af;font-style:italic;padding:10px;text-align:center}
 .tip{background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;line-height:1.7;color:#78350f}
 .tip code{background:#fef3c7;padding:2px 6px;border-radius:4px;font-family:monospace;color:#92400e}
 .tip a{color:#2563eb;text-decoration:none}
@@ -68,6 +110,9 @@ button:hover{background:#d97706}
     
     <label>服务类型</label>
     <input type="text" id="type" readonly>
+    
+    <label>请求参数说明 <button class="fill-btn" onclick="fillTemplate()">填入示例模板</button></label>
+    <div id="fields-desc"><div class="no-fields">选择服务后自动加载请求字段</div></div>
     
     <label>请求参数 (YAML/JSON)</label>
     <textarea id="args" placeholder="{ } 或 空"></textarea>
@@ -87,11 +132,65 @@ async function loadServices(){
   const sel=document.getElementById('service');
   sel.innerHTML='<option value="">选择服务...</option>'+data.map(s=>`<option value="${s}">${s}</option>`).join('');
 }
+let lastFields=[];
 async function loadType(){
   const name=document.getElementById('service').value;
-  if(!name){document.getElementById('type').value='';return;}
+  const desc=document.getElementById('fields-desc');
+  if(!name){
+    document.getElementById('type').value='';
+    desc.innerHTML='<div class="no-fields">选择服务后自动加载请求字段</div>';
+    lastFields=[];
+    return;
+  }
   const res=await fetch('/api/type?name='+encodeURIComponent(name));
-  document.getElementById('type').value=await res.text();
+  const type=await res.text();
+  document.getElementById('type').value=type;
+  if(type){
+    await loadInterface(type);
+  }else{
+    desc.innerHTML='<div class="no-fields">无法获取服务类型</div>';
+    lastFields=[];
+  }
+}
+async function loadInterface(type){
+  const desc=document.getElementById('fields-desc');
+  try{
+    const res=await fetch('/api/interface?type='+encodeURIComponent(type));
+    const data=await res.json();
+    lastFields=data.request||[];
+    if(!lastFields.length){
+      desc.innerHTML='<div class="no-fields">该服务无请求字段（或无法解析接口）</div>';
+      return;
+    }
+    let html='<table class="fields"><tr><th>类型</th><th>字段名</th><th>默认/说明</th></tr>';
+    lastFields.forEach(f=>{
+      if(f.type==='comment'){
+        html+=`<tr><td colspan="3" style="color:#92400e;font-style:italic">${f.name}</td></tr>`;
+      }else{
+        html+=`<tr><td class="ftype">${f.type}</td><td class="fname">${f.name}</td><td class="fdef">${f.default||'-'}</td></tr>`;
+      }
+    });
+    html+='</table>';
+    desc.innerHTML=html;
+  }catch(e){
+    desc.innerHTML='<div class="no-fields">接口加载失败: '+e.message+'</div>';
+  }
+}
+function fillTemplate(){
+  const fields=lastFields.filter(f=>f.type!=='comment'&&f.name);
+  if(!fields.length){alert('当前服务无可填字段');return;}
+  const parts=fields.map(f=>{
+    let v=f.default;
+    if(!v){
+      if(/int/.test(f.type))v='0';
+      else if(/float|double/.test(f.type))v='0.0';
+      else if(/bool/.test(f.type))v='false';
+      else if(/string/.test(f.type))v="''";
+      else v="''";
+    }
+    return f.name+': '+v;
+  });
+  document.getElementById('args').value='{'+parts.join(', ')+'}';
 }
 async function call(){
   const name=document.getElementById('service').value;
@@ -131,6 +230,15 @@ class H(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "text/plain")
             self.end_headers()
             self.wfile.write(call_service(name, stype, args).encode())
+        elif parsed.path.startswith('/api/interface'):
+            qs = parse_qs(parsed.query)
+            stype = qs.get('type', [''])[0]
+            raw, req_fields, resp_fields = get_service_interface(stype)
+            payload = {"raw": raw, "request": req_fields, "response": resp_fields}
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(json.dumps(payload, ensure_ascii=False).encode('utf-8'))
         else:
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")

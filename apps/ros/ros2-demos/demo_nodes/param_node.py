@@ -2,7 +2,7 @@
 """参数节点 - 提供可调节的参数"""
 import rclpy
 from rclpy.node import Node
-from rclpy.parameter import Parameter
+from rclpy.parameter import Parameter, SetParametersResult
 
 class ParamNode(Node):
     def __init__(self):
@@ -23,7 +23,8 @@ class ParamNode(Node):
     def param_callback(self, params):
         for param in params:
             self.get_logger().info(f'参数修改: {param.name} = {param.value}')
-        return [rclpy.parameter.Parameter.Type.NOT_SET] * len(params)
+        # 必须返回 successful=True，否则 ROS2 会拒绝修改并把值回滚到旧值
+        return SetParametersResult(successful=True)
 
 def main():
     rclpy.init()

@@ -21,35 +21,44 @@ def get_port():
 PORT = get_port()
 
 def get_frames():
-    try:
-        res = subprocess.run("ros2 topic echo /tf --once --no-arr", shell=True, capture_output=True, text=True, timeout=3)
-        frames = set()
-        for line in res.stdout.split('\n'):
-            if 'frame_id:' in line:
-                frames.add(line.split(':')[1].strip())
-            elif 'child_frame_id:' in line:
-                frames.add(line.split(':')[1].strip())
-        return sorted(list(frames))
-    except: return []
+    """从 /tf 和 /tf_static 提取所有坐标系名。
+    注意: 不能用 --no-arr，否则 transforms 数组被折叠，frame_id/child_frame_id 全部隐藏。
+    """
+    frames = set()
+    for topic in ['/tf', '/tf_static']:
+        try:
+            res = subprocess.run(
+                f"ros2 topic echo {topic} --once",
+                shell=True, capture_output=True, text=True, timeout=3
+            )
+            # child_frame_id 必须先匹配 (它包含 frame_id 子串)
+            for m in re.finditer(r'child_frame_id:\s*(\S+)', res.stdout):
+                frames.add(m.group(1).strip("'\""))
+            # 负向先行断言: 排除 child_frame_id
+            for m in re.finditer(r'(?<!child_)frame_id:\s*(\S+)', res.stdout):
+                frames.add(m.group(1).strip("'\""))
+        except Exception:
+            pass
+    return sorted(frames)
 
 def get_tf_echo(parent, child):
     try:
         cmd = f"ros2 run tf2_ros tf2_echo {parent} {child}"
-        res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=3)
-        out = res.stdout.strip()
-        # 解析最后一行有效数据
-        lines = [l for l in out.split('\n') if 'At time' in l]
-        if lines:
-            last = lines[-1]
-            # 简单正则提取
-            trans = re.search(r'Translation: \[(.*?)\]', last)
-            rot = re.search(r'Rotation: in Quaternion \[(.*?)\]', last)
-            return {
-                "raw": last,
-                "translation": trans.group(1) if trans else "",
-                "quaternion": rot.group(1) if rot else ""
-            }
-        return {"raw": out, "translation": "", "quaternion": ""}
+        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            out, _ = proc.communicate(timeout=3)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            out, _ = proc.communicate()
+        out = (out or "").strip()
+        # Translation / Rotation 各自单独一行，必须在整个输出里搜索
+        trans = re.search(r'Translation:\s*\[^\]]*\]', out)
+        rot = re.search(r'Rotation: in Quaternion \[^\]]*\]', out)
+        return {
+            "raw": out[-800:],
+            "translation": trans.group(0) if trans else "",
+            "quaternion": rot.group(0) if rot else ""
+        }
     except Exception as e:
         return {"raw": str(e), "translation": "", "quaternion": ""}
 

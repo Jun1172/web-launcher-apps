@@ -25,6 +25,18 @@ os.makedirs(bag_dir, exist_ok=True)
 
 record_proc = None
 play_proc = None
+record_start_time = 0
+play_start_time = 0
+record_topics_count = 0
+log_lines = []   # 运行日志（最近 200 条）
+
+def log(msg):
+    """追加一条运行日志，最多保留 200 条。"""
+    import time as _t
+    line = f"[{_t.strftime('%H:%M:%S')}] {msg}"
+    log_lines.append(line)
+    if len(log_lines) > 200:
+        del log_lines[:len(log_lines) - 200]
 
 def get_bags():
     return [os.path.basename(p) for p in glob.glob(os.path.join(bag_dir, "*")) if os.path.isdir(p)]
@@ -44,30 +56,62 @@ def get_bag_info(name):
     except: return "获取信息失败"
 
 def start_record(topics):
-    global record_proc
+    global record_proc, record_start_time, record_topics_count
     stop_record()
+    import time as _t
     path = os.path.join(bag_dir, "record_bag")
     cmd = f"ros2 bag record -o {path} {' '.join(topics)}"
+    log(f"开始录制 {len(topics)} 个话题: {', '.join(topics)}")
+    log(f"保存路径: {path}")
     record_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    record_start_time = _t.time()
+    record_topics_count = len(topics)
+    log("录制进程已启动")
 
 def stop_record():
-    global record_proc
+    global record_proc, record_topics_count
     if record_proc:
+        log("停止录制...")
         record_proc.terminate()
+        try:
+            record_proc.wait(timeout=5)
+        except Exception:
+            record_proc.kill()
         record_proc = None
+        record_topics_count = 0
+        import glob as _g, os as _os
+        bags = sorted(_g.glob(_os.path.join(bag_dir, "record_bag*")),
+                       key=_os.path.getmtime, reverse=True)
+        if bags:
+            log(f"录制完成，已保存: {_os.path.basename(bags[0])}")
+        else:
+            log("录制已停止（未发现输出文件）")
 
 def start_play(name):
-    global play_proc
+    global play_proc, play_start_time
     stop_play()
+    import time as _t
     path = os.path.join(bag_dir, name)
+    if not os.path.isdir(path):
+        log(f"播放失败: 找不到 Bag '{name}'")
+        return
     cmd = f"ros2 bag play {path}"
+    log(f"开始播放: {name}")
     play_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    play_start_time = _t.time()
+    log("播放进程已启动")
 
 def stop_play():
     global play_proc
     if play_proc:
+        log("停止播放...")
         play_proc.terminate()
+        try:
+            play_proc.wait(timeout=5)
+        except Exception:
+            play_proc.kill()
         play_proc = None
+        log("播放已停止")
 
 HTML = r"""<!DOCTYPE html>
 <html>
@@ -85,6 +129,16 @@ button{padding:8px 16px;margin-right:10px;border:none;border-radius:6px;cursor:p
 pre{background:#f8fafc;padding:15px;border-radius:6px;font-size:13px;max-height:200px;overflow:auto}
 .status{padding:10px;background:#fce7f3;border-radius:6px;margin-bottom:15px;font-weight:bold}
 .topic-list{max-height:150px;overflow-y:auto;border:1px solid #fbcfe8;border-radius:6px;padding:8px;margin-bottom:10px}
+.topic-list label{display:flex;align-items:center;padding:4px 6px;cursor:pointer;border-radius:4px}
+.topic-list label:hover{background:#fdf2f8}
+.topic-list input[type=checkbox]{width:auto;margin:0 8px 0 0;flex:0 0 auto}
+#log{background:#0f172a;color:#e2e8f0;padding:12px 15px;border-radius:8px;font-family:'Consolas','Monaco',monospace;font-size:12px;line-height:1.6;max-height:220px;overflow-y:auto;white-space:pre-wrap;word-break:break-all}
+#log .log-line{display:block}
+.log-time{color:#94a3b8}
+.log-info{color:#60a5fa}
+.log-warn{color:#fbbf24}
+.log-ok{color:#34d399}
+.log-err{color:#f87171}
 .tip{background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;line-height:1.7;color:#78350f}
 .tip code{background:#fef3c7;padding:2px 6px;border-radius:4px;font-family:monospace;color:#92400e}
 .tip a{color:#2563eb;text-decoration:none}
@@ -118,6 +172,11 @@ pre{background:#f8fafc;padding:15px;border-radius:6px;font-size:13px;max-height:
     <h3>Bag 信息</h3>
     <pre id="info">选择 Bag 查看信息</pre>
   </div>
+
+  <div class="card">
+    <h3>运行日志</h3>
+    <div id="log">等待操作...</div>
+  </div>
 </div>
 <script>
 async function loadBags(){
@@ -147,6 +206,22 @@ async function rec(){
   await fetch('/api/record?topics='+encodeURIComponent(topics.join(' ')));
   document.getElementById('rec-status').textContent='状态: 录制中...';
 }
+async function loadLog(){
+  try{
+    const res=await fetch('/api/log');
+    const lines=await res.json();
+    const el=document.getElementById('log');
+    if(!lines.length){el.innerHTML='<span style=color:#64748b>等待操作...</span>';return}
+    el.innerHTML=lines.map(l=>{
+      let cls='log-info';
+      if(/完成|启动|保存|开始/.test(l))cls='log-ok';
+      else if(/失败|错误|停止/.test(l))cls='log-warn';
+      const t=l.slice(0,10),m=l.slice(10);
+      return '<span class=log-line><span class=log-time>'+t+'</span><span class='+cls+'>'+m+'</span></span>';
+    }).join('');
+    el.scrollTop=el.scrollHeight;
+  }catch(e){}
+}
 async function stopRec(){
   await fetch('/api/stop_record');
   document.getElementById('rec-status').textContent='状态: 已停止';
@@ -166,8 +241,17 @@ loadBags();
 loadTopics();
 setInterval(()=>{
   fetch('/api/status').then(r=>r.json()).then(d=>{
-    document.getElementById('rec-status').textContent='状态: '+(d.recording?'录制中...':'空闲');
-    document.getElementById('play-status').textContent='状态: '+(d.playing?'播放中...':'空闲');
+    const rs=document.getElementById('rec-status');
+    const ps=document.getElementById('play-status');
+    if(d.recording){
+      const el=Math.floor((Date.now()/1000-d.rec_start));
+      rs.textContent='状态: 录制中... 已运行 '+el+'s ('+d.rec_topics+' 个话题)';
+    }else rs.textContent='状态: 空闲';
+    if(d.playing){
+      const el=Math.floor((Date.now()/1000-d.play_start));
+      ps.textContent='状态: 播放中... 已运行 '+el+'s';
+    }else ps.textContent='状态: 空闲';
+    loadLog();
   });
 },1000);
 </script>
@@ -211,12 +295,31 @@ class H(BaseHTTPRequestHandler):
             stop_play()
             self.send_response(200); self.end_headers(); self.wfile.write(b'{}')
         elif parsed.path == '/api/status':
-            status = {"recording": record_proc is not None and record_proc.poll() is None,
-                      "playing": play_proc is not None and play_proc.poll() is None}
+            rec_alive = record_proc is not None and record_proc.poll() is None
+            play_alive = play_proc is not None and play_proc.poll() is None
+            # 进程已退出但变量没清，补一条日志
+            if record_proc is not None and not rec_alive:
+                log("录制进程已退出")
+                stop_record()
+            if play_proc is not None and not play_alive:
+                log("播放进程已结束")
+                stop_play()
+            status = {
+                "recording": rec_alive,
+                "rec_start": int(record_start_time),
+                "rec_topics": record_topics_count,
+                "playing": play_alive,
+                "play_start": int(play_start_time),
+            }
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps(status).encode())
+        elif parsed.path == '/api/log':
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(json.dumps(log_lines[-200:], ensure_ascii=False).encode('utf-8'))
         else:
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
