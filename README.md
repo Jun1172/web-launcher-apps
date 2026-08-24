@@ -1,6 +1,7 @@
 # 📦 Web Launcher Apps — 业务应用仓库
 
 一个**纯应用仓库**项目：包含游戏、通用工具、ROS2 工具和 demo 应用，通过 web-launcher 框架运行。本项目**不含** launcher 框架代码本身。
+![Logo](images/桌面.png)
 
 ## 🔗 相关仓库
 
@@ -118,6 +119,13 @@ ROS2 应用需要在已加载 ROS2 环境的终端中运行。`cpp-hello` 等原
 - 应用启动、端口探测、安装/卸载、版本回退和 `app.json` 字段行为见 [web-launcher README](https://github.com/Jun1172/web-launcher#-appjson-schema)。
 - 应用目录中的 README 优先说明该应用的额外依赖和启动方式。
 - 两个仓库都保留部分 demo 是为了方便独立开发；接入 launcher 时应按需选择目录，避免同名应用同时存在。
+
+## 🔧 部分应用演示
+![Logo](images/电子宠物.png)
+![Logo](images/记忆翻牌.png)
+![Logo](images/网络工具.png)
+![Logo](images/ROS工具.png)
+![Logo](images/ROS演示.png)
 
 ## 📜 License
 
