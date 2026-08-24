@@ -1,6 +1,14 @@
 # 📦 Web Launcher Apps — 业务应用仓库
 
-一个**纯应用仓库**项目：包含通用应用 + 一组 demo 应用，通过 [web-launcher](https://github.com/Jun1172/web-launcher) 框架运行。本项目**不含** launcher 框架代码本身。
+一个**纯应用仓库**项目：包含游戏、通用工具、ROS2 工具和 demo 应用，通过 web-launcher 框架运行。本项目**不含** launcher 框架代码本身。
+
+## 🔗 相关仓库
+
+- [GitHub：web-launcher-apps](https://github.com/Jun1172/web-launcher-apps)
+- [Gitee：web-launcher（运行时）](https://gitee.com/jun626/web-launcher)
+- [GitHub：web-launcher（运行时）](https://github.com/Jun1172/web-launcher)
+
+两个代码托管平台内容保持同步，选择访问速度更快的平台即可。运行时、应用协议和发布工具的说明以 [web-launcher README](https://github.com/Jun1172/web-launcher#readme) 为准。
 
 ## 📌 项目定位
 
@@ -8,8 +16,9 @@
 |------|------|
 | **是什么** | 业务应用源码仓库（apps/）+ 发布工具（publish.py）+ 配置（config.json） |
 | **不是什么** | 不含 launcher 框架（无 launcher.py / launcher/ 包）；运行需要先安装 web-launcher |
-| **运行方式** | 把本项目的 apps/ 软链 / 复制到 web-launcher 的 apps/ 下；或直接修改 web-launcher 的 config.json 指向这里 |
-| **发布方式** | 本项目自带 `publish.py`，把应用打包成 zip 推送到远端仓库 |
+| **运行方式** | 将本项目的应用目录软链 / 复制到 web-launcher 的 `apps/` 下，再启动 web-launcher |
+| **发布方式** | 本项目自带 `publish.py`，按 `app.json` 递归发现应用并将 zip 推送到远端仓库 |
+| **运行时发布** | launcher 自身的 OTA 包应在 web-launcher 项目中使用其 `publish.py --launcher` 发布 |
 
 ## 📂 目录结构
 
@@ -20,43 +29,31 @@ web-launcher-apps/
 ├── publish.py                # 发布工具（与 web-launcher/publish.py 同步）
 └── apps/
     ├── README.md            # 应用开发指南（与 web-launcher 同步）
-    ├── general/             # 通用应用分组（自定义 group="general"）
-    │   ├── calculator/      # 🧮 计算器
-    │   ├── mqtt_debugger/   # 📡 MQTT 调试工具
-    │   ├── tcp_debugger/    # 🔧 TCP 调试工具
-    │   └── udp_debugger/    # 📶 UDP 调试工具
-    └── user/                # demo 应用分组
-        ├── hello/           # 👋 最简 demo
-        ├── notes/           # 🗒️ 便签
-        ├── weather/         # 🌤️ 天气
-        ├── game2048/        # 🎮 2048 小游戏
-        ├── proc-demo/       # ⚙️ 后台进程 demo
-        ├── file-demo/       # 📄 占位 stub demo
-        ├── system-monitor/  # 📈 实时监控
-        └── cpp-hello/       # 🦾 C++ 应用模板
+    ├── game/                # 小游戏（11 个）
+    ├── general/             # 通用工具（网络、文件、调试、日志等）
+    ├── ros/                 # ROS2 工具（9 个）
+    └── user/                # demo 应用（8 个）
 ```
 
 ## 🎯 内置应用
 
-### 通用应用（`apps/general/`，分组 `general`）
+### 应用分组
 
-| 应用 | 端口 | 说明 |
-|------|------|------|
-| 🧮 计算器 calculator | — | 基础计算器工具 |
-| 📡 MQTT 调试 mqtt_debugger | — | MQTT 消息发布/订阅调试工具 |
-| 🔧 TCP 调试 tcp_debugger | — | TCP 客户端/服务端调试工具 |
-| 📶 UDP 调试 udp_debugger | — | UDP 数据收发调试工具 |
+| 分组 | 内容 | 环境要求 |
+|------|------|----------|
+| `game` | breakout、flappy-bird、snake、tetris 等小游戏 | 浏览器 |
+| `general` | 文件、日志、Markdown、网络、TCP/UDP/MQTT 等工具 | 依应用而定 |
+| `ros` | ROS2 action、bag、monitor、topic、teleop 等工具 | 目标机需安装并配置 ROS2 |
+| `user` | hello、weather、game2048、system-monitor、cpp-hello 等示例 | C++ 示例需本机编译 |
 
-### demo 应用（`apps/user/`）
-
-详见 [web-launcher README - 内置应用](https://github.com/Jun1172/web-launcher#-内置应用)。
+完整应用清单以各目录中的 `app.json` 为准；发布脚本会递归扫描所有清单，不要求应用必须位于固定分组目录。
 
 ## 🚀 快速开始
 
 ### 方式 A：与 web-launcher 共置（推荐开发态）
 
 ```bash
-# 1. 把本项目的 apps/* 软链到 web-launcher/apps/
+# 1. 按需把本项目的应用分组软链到 web-launcher/apps/
 # Windows（管理员权限）：
 mklink /D c:\path\to\web-launcher\apps\general c:\path\to\web-launcher-apps\apps\general
 # Linux：
@@ -67,10 +64,12 @@ cd ../web-launcher
 python launcher.py
 ```
 
+`game`、`general`、`ros`、`user` 都可以按同样方式接入。不要直接用整个 `apps/` 覆盖 launcher 的 `apps/`，否则可能覆盖系统应用；同名 `id` 也应只保留一个版本。
+
 ### 方式 B：复制 apps/ 到 web-launcher
 
 ```bash
-# 复制通用应用分组
+# 复制一个应用分组
 Copy-Item -Recurse apps/general ../web-launcher/apps/
 ```
 
@@ -93,6 +92,8 @@ python publish.py --user
 python publish.py --all
 ```
 
+ROS2 应用需要在已加载 ROS2 环境的终端中运行。`cpp-hello` 等原生应用需要先按应用目录中的说明完成本机编译，并针对目标平台分别生成产物。
+
 ## 📋 app.json Schema
 
 详见 [web-launcher README - app.json Schema](https://github.com/Jun1172/web-launcher#-appjson-schema) 与 [apps/README.md](apps/README.md)。
@@ -106,16 +107,17 @@ python publish.py --all
   "icon": "🧮",
   "color": "#3498db",
   "version": "1.0.0",
-  "port": 8150,
+  "port": 8140,
   "cmd": ["apps/general/calculator/app.py"],
   "group": "general"
 }
 ```
 
-## 🛣 待办
+## 🔧 开发提示
 
-- [ ] 确认是否保留 `apps/user/` 下与 web-launcher 重复的 demo（hello/notes/weather/game2048/proc-demo/file-demo/system-monitor/cpp-hello），避免双仓库同步漂移
-- [ ] 通用应用历史版本回退测试
+- 应用启动、端口探测、安装/卸载、版本回退和 `app.json` 字段行为见 [web-launcher README](https://github.com/Jun1172/web-launcher#-appjson-schema)。
+- 应用目录中的 README 优先说明该应用的额外依赖和启动方式。
+- 两个仓库都保留部分 demo 是为了方便独立开发；接入 launcher 时应按需选择目录，避免同名应用同时存在。
 
 ## 📜 License
 
