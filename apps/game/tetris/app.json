@@ -8,6 +8,5 @@
   "port": 8163,
   "cmd": ["apps/game/tetris/app.py"],
   "dock": false,
-  "system": false,
   "group": "game"
 }

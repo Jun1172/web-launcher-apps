@@ -8,6 +8,5 @@
   "port": 8161,
   "cmd": ["apps/game/flappy-bird/app.py"],
   "dock": false,
-  "system": false,
   "group": "game"
 }

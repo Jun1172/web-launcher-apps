@@ -8,6 +8,5 @@
   "port": 8141,
   "cmd": ["apps/general/ip-scanner/app.py"],
   "dock": false,
-  "system": false,
   "group": "general"
 }

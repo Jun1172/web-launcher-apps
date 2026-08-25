@@ -8,6 +8,5 @@
   "port": 8143,
   "cmd": ["apps/general/lan-talk/app.py"],
   "dock": false,
-  "system": false,
   "group": "general"
 }

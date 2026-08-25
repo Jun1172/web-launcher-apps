@@ -8,6 +8,5 @@
   "port": 8206,
   "cmd": ["apps/ros/ros2-tf-viewer/app.py"],
   "dock": false,
-  "system": false,
   "group": "ros"
 }

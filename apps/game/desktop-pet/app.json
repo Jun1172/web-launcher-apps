@@ -8,6 +8,5 @@
   "port": 8169,
   "cmd": ["apps/game/desktop-pet/app.py"],
   "dock": false,
-  "system": false,
   "group": "game"
 }

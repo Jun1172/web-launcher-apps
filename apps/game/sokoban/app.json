@@ -8,6 +8,5 @@
   "port": 8162,
   "cmd": ["apps/game/sokoban/app.py"],
   "dock": false,
-  "system": false,
   "group": "game"
 }

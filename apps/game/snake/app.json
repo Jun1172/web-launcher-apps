@@ -8,6 +8,5 @@
   "port": 8160,
   "cmd": ["apps/game/snake/app.py"],
   "dock": false,
-  "system": false,
   "group": "game"
 }

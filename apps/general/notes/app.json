@@ -8,6 +8,5 @@
   "port": 8120,
   "cmd": ["apps/general/notes/app.py"],
   "dock": false,
-  "system": false,
   "group": "general"
 }

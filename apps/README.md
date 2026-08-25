@@ -32,22 +32,9 @@
 | `changelog` | string | ❌ | — | 版本说明 |
 | `released` | string | ❌ | — | 发布时间（ISO 8601） |
 | `dock` | bool | ❌ | false | 是否常驻底部 Dock（出厂默认；用户可用 layout.json 覆盖） |
-| `system` | bool | ❌ | false | 是否系统应用（一般不手填，按目录自动推导） |
-| `group` | string | ❌ | 推导 | 自定义分组；缺省时按 `system` 推导为 `"system"` 或 `"user"` |
-| `requires` | object | ❌ | `{}` | 依赖声明（**当前未校验**，仅作文档，见路线图） |
+| `group` | string | ❌ | `"user"` | 分组来源；`"system"` 受保护不可卸载，自定义分组发布/卸载按此分组 |
 
-### ⚠️ 当前不生效字段
-
-下列字段写在 app.json 里**不会报错也不会生效**（路线图里待实现）：
-
-| 字段 | 当前行为 |
-|------|----------|
-| `ready_check` | 不读取；只看 `port` 字段做 TCP 端口探测 |
-| `restart_policy` | 不读取；进程崩溃后不自动重启 |
-| `stop_signal` | 不读取；`close_app` 直接 `p.terminate()` |
-| `stop_timeout` | 不读取；硬编码 2 秒后强 kill |
-| `workdir` | 不读取；`Popen` 未传 `cwd` |
-| `env` | 不读取；`Popen` 未传 `env`（且 `env` 不进 index.json，避免密钥泄漏） |
+> 已从 schema 移除的未实现字段：`ready_check` / `restart_policy` / `stop_signal` / `stop_timeout` / `workdir` / `requires` / `system`。当前只做 TCP 端口探测，进程停止固定用 `terminate()` + 2s 后强 kill 兜底。
 
 ### 最小可用清单
 

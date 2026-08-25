@@ -8,6 +8,5 @@
   "port": 8146,
   "cmd": ["apps/general/port-scanner/app.py"],
   "dock": false,
-  "system": false,
   "group": "general"
 }

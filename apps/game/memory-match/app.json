@@ -8,6 +8,5 @@
   "port": 8165,
   "cmd": ["apps/game/memory-match/app.py"],
   "dock": false,
-  "system": false,
   "group": "game"
 }

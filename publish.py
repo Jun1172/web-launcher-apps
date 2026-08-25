@@ -98,10 +98,8 @@ def discover_apps(kind="all"):
     for d in all_dirs:
         try:
             meta = json.loads((d / "app.json").read_text(encoding="utf-8"))
-            # 核心改动：读取 group 字段，兼容旧版 system 字段
-            app_group = meta.get("group")
-            if app_group is None:
-                app_group = "system" if meta.get("system") else "user"
+            # group 为唯一判定来源；system 字段已废弃
+            app_group = meta.get("group") or "user"
         except Exception:
             continue
             
@@ -121,10 +119,8 @@ def print_apps_table(apps):
         except Exception as e:
             meta = {"id": d.name, "name": f"⚠ app.json 损坏: {e}"}
         
-        # 核心改动：显示 group 而不是 SYSTEM/USER
-        group = meta.get("group")
-        if group is None:
-            group = "system" if meta.get("system") else "user"
+        # group 为唯一判定来源；system 字段已废弃
+        group = meta.get("group") or "user"
             
         rel = d.relative_to(BASE).as_posix()
         rows.append((group.upper(), rel, meta.get("id", "?"), meta.get("version", "?"), meta.get("name", "?")))
@@ -150,24 +146,19 @@ def ensure_index():
 
 def build_entry(meta, zip_path):
     """生成 index.json 里的单个 app 条目"""
-    # 核心改动：白名单中 system 替换为 group
+    # 白名单：只保留实际生效的字段（system 已废弃，group 为分组来源）
     FIELDS = ("id", "name", "icon", "color", "version", "changelog",
-              "port", "cmd", "dock", "group", 
-              "ready_check", "workdir", "stop_signal", "stop_timeout",
-              "restart_policy", "requires", "released")
+              "port", "cmd", "dock", "group", "released")
     entry = {k: meta[k] for k in FIELDS if k in meta}
     
-    # 兼容处理：如果旧配置没有 group，自动推断并写入
-    if "group" not in entry:
-        entry["group"] = "system" if meta.get("system") else "user"
+    # 兼容处理：如果旧配置没有 group，默认按 user
+    entry.setdefault("group", "user")
         
     entry["pkg"] = f"{PACKAGES_DIR}/{zip_path.name}"
     entry["size"] = zip_path.stat().st_size
     entry["sha256"] = sha256(zip_path)
     entry.setdefault("released", datetime.datetime.now().isoformat())
     return entry
-
-MAX_VERSIONS = 0   # 不保留历史版本，已移除版本回退功能
 
 def publish_one(app_dir, *, upload=True, index_override=None):
     """发布单个应用"""
@@ -192,8 +183,8 @@ def publish_one(app_dir, *, upload=True, index_override=None):
 
     zip_name = f"{meta['id']}-{meta['version']}.zip"
     
-    # 核心改动：根据 group 决定图标
-    group = meta.get("group", "system" if meta.get("system") else "user")
+    # 根据 group 决定图标
+    group = meta.get("group") or "user"
     kind_tag = "🛡️" if group == "system" else "📦"
     print(f"{kind_tag} 打包 {meta['name']} v{meta['version']} (id={meta['id']}, group={group})...")
 
@@ -305,7 +296,7 @@ def build_launcher_zip(version: str, changelog: str) -> Path:
         except Exception:
             continue
         
-        app_group = meta.get("group", "system" if meta.get("system") else "user")
+        app_group = meta.get("group") or "user"
         if app_group != "system":
             continue
             

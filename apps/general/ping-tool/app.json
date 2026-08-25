@@ -8,6 +8,5 @@
   "port": 8145,
   "cmd": ["apps/general/ping-tool/app.py"],
   "dock": false,
-  "system": false,
   "group": "general"
 }

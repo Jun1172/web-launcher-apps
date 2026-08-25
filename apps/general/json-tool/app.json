@@ -8,6 +8,5 @@
   "port": 8142,
   "cmd": ["apps/general/json-tool/app.py"],
   "dock": false,
-  "system": false,
   "group": "general"
 }

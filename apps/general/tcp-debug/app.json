@@ -8,6 +8,5 @@
   "port": 8147,
   "cmd": ["apps/general/tcp-debug/app.py"],
   "dock": false,
-  "system": false,
   "group": "general"
 }

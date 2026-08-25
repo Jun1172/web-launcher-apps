@@ -8,6 +8,5 @@
   "port": 8167,
   "cmd": ["apps/game/life/app.py"],
   "dock": false,
-  "system": false,
   "group": "game"
 }

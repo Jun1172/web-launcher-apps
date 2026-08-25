@@ -8,6 +8,5 @@
   "port": 8148,
   "cmd": ["apps/general/udp-debug/app.py"],
   "dock": false,
-  "system": false,
   "group": "general"
 }

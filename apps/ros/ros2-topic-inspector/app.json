@@ -8,6 +8,5 @@
   "port": 8203,
   "cmd": ["apps/ros/ros2-topic-inspector/app.py"],
   "dock": false,
-  "system": false,
   "group": "ros"
 }

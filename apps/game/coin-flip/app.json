@@ -8,6 +8,5 @@
   "port": 8172,
   "cmd": ["apps/game/coin-flip/app.py"],
   "dock": false,
-  "system": false,
   "group": "game"
 }

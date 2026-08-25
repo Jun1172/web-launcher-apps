@@ -8,7 +8,6 @@
   "port": 8144,
   "cmd": ["apps/general/mqtt-debug/app.py"],
   "dock": false,
-  "system": false,
   "group": "general",
   "env": {"PIP_REQUIRE": "paho-mqtt"}
 }

@@ -8,6 +8,5 @@
   "port": 8164,
   "cmd": ["apps/game/breakout/app.py"],
   "dock": false,
-  "system": false,
   "group": "game"
 }

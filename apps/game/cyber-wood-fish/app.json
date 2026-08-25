@@ -8,6 +8,5 @@
   "port": 8171,
   "cmd": ["apps/game/cyber-wood-fish/app.py"],
   "dock": false,
-  "system": false,
   "group": "game"
 }
