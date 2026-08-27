@@ -1,0 +1,12 @@
+{
+  "id": "ros2-type-studio",
+  "name": "类型/波形",
+  "icon": "🧬",
+  "color": "#fb923c",
+  "version": "1.1.0",
+  "changelog": "类型模板库 + 实时波形/消息查看器（合并）：内置常用消息类型一键发布，自定义任意类型/JSON，下方即可订阅查看实时波形与原始消息。",
+  "port": 8209,
+  "cmd": ["apps/ros/ros2-type-studio/app.py"],
+  "dock": false,
+  "group": "ros"
+}

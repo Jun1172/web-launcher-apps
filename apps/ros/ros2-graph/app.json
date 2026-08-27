@@ -1,0 +1,12 @@
+{
+  "id": "ros2-graph",
+  "name": "关系图",
+  "icon": "🕸️",
+  "color": "#06b6d4",
+  "version": "1.0.0",
+  "changelog": "交互式节点关系图：可视化节点与话题/服务/动作的连接关系。",
+  "port": 8207,
+  "cmd": ["apps/ros/ros2-graph/app.py"],
+  "dock": false,
+  "group": "ros"
+}
