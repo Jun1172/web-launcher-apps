@@ -71,7 +71,11 @@ def get_nodes():
 
 
 def get_params(node):
-    """返回参数名列表；失败时返回 {'error': <原因>}。
+    """返回参数对象列表 [{name}, ...]；失败时返回 {'error': <原因>}。
+
+    前端 renderParams() 用 p.name 读参数名，这里必须给对象而非纯字符串，
+    否则 p.name = undefined → undefined.replace() 抛 TypeError，Promise
+    .then() 里的同步异常会穿透到链尾 .catch()，误显示"请求异常"。
 
     空结果也重试：节点刚启动 DDS 尚未注册稳、或撞上残留幽灵节点时，
     `ros2 param list` 可能 rc=0 但没输出，直接返回会误报"0 参数"。
@@ -85,7 +89,7 @@ def get_params(node):
             continue
         names = [ln.strip() for ln in stdout.strip().splitlines() if ln.strip()]
         if names:
-            return names
+            return [{"name": n} for n in names]
         if attempt < 3:
             time.sleep(1.0)
             continue
@@ -243,6 +247,8 @@ td .val{font-family:ui-monospace,monospace;color:#7dd3fc;word-break:break-all}
 <div class="toast" id="toast"></div>
 
 <script>
+// 缓存破坏：给所有 GET 请求追加时间戳，避免浏览器缓存旧的错误响应
+function noCache(u){return u+(u.indexOf('?')>=0?'&':'?')+'_t='+Date.now();}
 function show(name){
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on')});
   document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on')});
@@ -261,7 +267,7 @@ function toast(msg,ok){
 
 var _loaded='', _busy=false;
 function loadNodes(){
-  fetch('/api/nodes').then(function(r){return r.json()}).then(function(nodes){
+  fetch(noCache('/api/nodes')).then(function(r){return r.json()}).then(function(nodes){
     var sel=document.getElementById('node-select');
     var prev=sel.value;
     var html='<option value="">选择节点...</option>';
@@ -277,7 +283,7 @@ function onNode(attempt){
   if(_busy){return;}
   _busy=true;
   document.getElementById('pbody').innerHTML='<tr><td colspan="4" class="empty">加载中...</td></tr>';
-  fetch('/api/params?node='+encodeURIComponent(node)).then(function(r){return r.json()}).then(function(res){
+  fetch(noCache('/api/params?node='+encodeURIComponent(node))).then(function(r){return r.json()}).then(function(res){
     _busy=false;
     if(document.getElementById('node-select').value!==node){return;} // 已切换节点则丢弃
     if(res && res.error){_loaded='';renderEmpty('⚠️ '+esc(res.error));return;}
@@ -316,7 +322,7 @@ function renderParams(node,list){
 }
 
 function refreshVal(node,param){
-  return fetch('/api/get?node='+encodeURIComponent(node)+'&param='+encodeURIComponent(param))
+  return fetch(noCache('/api/get?node='+encodeURIComponent(node)+'&param='+encodeURIComponent(param)))
     .then(function(r){return r.json()}).then(function(res){
       var el=document.getElementById('val-'+sid(param));
       if(!el) return;
@@ -330,7 +336,7 @@ function doSet(param){
   var node=document.getElementById('node-select').value;
   var inp=document.getElementById('inp-'+sid(param));
   if(!inp||!inp.value){toast('请输入新值',false);return;}
-  fetch('/api/set?node='+encodeURIComponent(node)+'&param='+encodeURIComponent(param)+'&value='+encodeURIComponent(inp.value))
+  fetch(noCache('/api/set?node='+encodeURIComponent(node)+'&param='+encodeURIComponent(param)+'&value='+encodeURIComponent(inp.value)))
     .then(function(r){return r.json()}).then(function(res){
       if(res.ok){toast('已设置 '+param+' = '+inp.value,true);refreshVal(node,param);}
       else{toast(res.out||'设置失败',false);}
@@ -338,7 +344,7 @@ function doSet(param){
 }
 
 function toggleSource(){
-  fetch('/api/psrc/toggle').then(function(){
+  fetch(noCache('/api/psrc/toggle')).then(function(){
     setTimeout(function(){
       srcStatus(); loadNodes();
       setTimeout(autoSelect,700);
@@ -356,7 +362,7 @@ function autoSelect(){
   }
 }
 function srcStatus(){
-  fetch('/api/psrc/status').then(function(r){return r.json()}).then(function(s){
+  fetch(noCache('/api/psrc/status')).then(function(r){return r.json()}).then(function(s){
     var on=s.running;
     var btn=document.getElementById('src-btn');
     btn.textContent=on?'停止参数节点':'启动参数节点';
@@ -367,7 +373,7 @@ function srcStatus(){
   }).catch(function(){});
 }
 
-fetch('/api/hints').then(function(r){return r.json()}).then(function(h){
+fetch(noCache('/api/hints')).then(function(r){return r.json()}).then(function(h){
   window._HINTS=h;
   window._VOLATILE=[];
   for(var k in h){if(/自增|递增|计数|动态/.test(h[k])){window._VOLATILE.push(k);}}
@@ -385,7 +391,7 @@ setInterval(function(){
     .then(function(){_refVol=false;}).catch(function(){_refVol=false;});
 },6000);
 
-fetch('/api/env').then(function(r){return r.json()}).then(function(e){
+fetch(noCache('/api/env')).then(function(r){return r.json()}).then(function(e){
   if(!e.ok){document.getElementById('env-banner').style.display='block';}
 }).catch(function(){});
 </script>
@@ -398,6 +404,8 @@ class H(BaseHTTPRequestHandler):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+        self.send_header("Pragma", "no-cache")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -437,6 +445,8 @@ class H(BaseHTTPRequestHandler):
             body = HTML.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+            self.send_header("Pragma", "no-cache")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
