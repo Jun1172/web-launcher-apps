@@ -1,8 +1,12 @@
 """ros2-monitor —— ROS2 系统监控面板"""
-import json, os, subprocess, threading, time
+import json, os, sys, subprocess, threading, time
 from pathlib import Path
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
+
+# 引入 ROS 组共享的 ros2 环境探测模块（跨平台、不固化路径）
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import shared_ros2 as ros2env
 
 def get_port():
     env_port = os.environ.get("LAUNCHER_APP_PORT")
@@ -31,10 +35,13 @@ cache = {
 def run_ros2_cmd(cmd):
     """执行 ROS2 命令并返回结果"""
     try:
-        env = os.environ.copy()
+        if cmd.startswith("ros2 "):
+            cmd, cwd = ros2env.command(cmd[5:])
+        else:
+            cwd = None
         result = subprocess.run(
-            cmd, shell=True, capture_output=True, 
-            text=True, timeout=5, env=env
+            cmd, shell=True, cwd=cwd, capture_output=True, 
+            text=True, encoding="utf-8", errors="replace", timeout=20
         )
         return result.stdout.strip().split('\n') if result.stdout else []
     except:

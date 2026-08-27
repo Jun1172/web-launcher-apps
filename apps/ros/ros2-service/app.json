@@ -1,0 +1,12 @@
+{
+  "id": "ros2-service",
+  "name": "服务教程",
+  "icon": "🧪",
+  "color": "#10b981",
+  "version": "1.0.0",
+  "changelog": "服务列表+调用+内置服务端闭环测试。",
+  "port": 8204,
+  "cmd": ["apps/ros/ros2-service/app.py"],
+  "dock": false,
+  "group": "ros"
+}
