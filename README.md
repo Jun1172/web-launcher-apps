@@ -42,7 +42,7 @@ web-launcher-apps/
 
 | 分组 | 内容 | 环境要求 |
 |------|------|----------|
-| `game` | breakout、flappy-bird、snake、tetris 等小游戏 | 浏览器 |
+| `game` | breakout、flappy-bird、snake、tetris、link-match 等小游戏 | 浏览器 |
 | `general` | 文件、日志、Markdown、网络、TCP/UDP/MQTT 等工具 | 依应用而定 |
 | `ros` | ROS2 action、bag、monitor、topic、teleop 等工具 | 目标机需安装并配置 ROS2 |
 | `user` | hello、weather、game2048、system-monitor、cpp-hello 等示例 | C++ 示例需本机编译 |

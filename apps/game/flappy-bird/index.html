@@ -1,1 +1,226 @@
-<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>🐦 像素鸟</title><style>body{margin:0;background:#172554;color:#e0f2fe;font:16px system-ui;text-align:center}main{margin:4vh auto;max-width:440px}canvas{width:min(92vw,400px);background:linear-gradient(#38bdf8,#bae6fd);border:3px solid #fbbf24}button{padding:10px 22px;border:0;border-radius:8px;background:#f59e0b;color:#fff;font-weight:bold}#msg{height:26px}</style><main><h1>🐦 一键像素鸟</h1><p>空格 / Enter / 点击屏幕起飞</p><canvas id="c" width="400" height="560"></canvas><div id="msg">点击开始</div><button onclick="start()">重开</button></main><script>const c=document.querySelector('canvas'),g=c.getContext('2d'),msg=document.querySelector('#msg');let y,vy,pipes,score,running=false,last=0;function start(){y=260;vy=0;pipes=[];score=0;running=true;msg.textContent='分数 0';requestAnimationFrame(loop)}function flap(){if(!running)return start();vy=-7}addEventListener('keydown',e=>{if([' ','Enter'].includes(e.key)){e.preventDefault();flap()}});c.onclick=flap;function loop(t){if(!running)return;let dt=Math.min(2,(t-last)/16||1);last=t;vy+=.35*dt;y+=vy*dt;if(!pipes.length||pipes[pipes.length-1].x<220)pipes.push({x:420,gap:150+Math.random()*210|0,passed:false});pipes.forEach(p=>p.x-=2.4*dt);pipes=pipes.filter(p=>p.x>-55);for(const p of pipes){if(!p.passed&&p.x<55){p.passed=true;score++;msg.textContent='分数 '+score}if(55>p.x&&20<p.x+54&&(y< p.gap-70||y+24>p.gap+70))return end()}if(y<0||y+24>560)return end();draw();requestAnimationFrame(loop)}function end(){running=false;msg.textContent='撞到了！得分 '+score+'，按空格再试'}function draw(){g.clearRect(0,0,400,560);g.fillStyle='#65a30d';pipes.forEach(p=>{g.fillRect(p.x,0,54,p.gap-70);g.fillRect(p.x,p.gap+70,54,560)});g.fillStyle='#facc15';g.fillRect(55,y,24,24);g.fillStyle='#1e293b';g.fillRect(72,y+5,4,4)}start()</script>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>🐦 像素鸟</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -10%,#14405e 0%,#0a1830 55%,#050c18 100%);color:#e0f2fe;font:15px system-ui,"Microsoft YaHei",sans-serif;display:grid;place-items:center;text-align:center;user-select:none;-webkit-user-select:none}
+  .wrap{width:min(94vw,500px);padding:20px 8px 26px}
+  h1{margin:0 0 2px;font-size:clamp(24px,7vw,36px);color:#fbbf24;text-shadow:0 0 26px #f59e0b55,0 0 60px #d9770666}
+  .sub{color:#6b88a8;font-size:11px;margin:0 0 14px;letter-spacing:4px}
+  .stage{position:relative;max-width:400px;margin:0 auto}
+  canvas{width:min(94vw,400px);background:linear-gradient(#4fb8f0 0%,#9be0f7 55%,#cdf3ff 100%);border-radius:14px;border:1px solid #7cb8d8;box-shadow:0 0 0 1px #38bdf855,0 14px 42px #000a;display:block}
+  .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(5,15,30,.55);backdrop-filter:blur(2px);border-radius:14px;padding:16px}
+  .overlay.hide{display:none}
+  .overlay .emoji{font-size:44px;animation:float 1.6s ease-in-out infinite}
+  @keyframes float{50%{transform:translateY(-8px)}}
+  .overlay h2{margin:0;font-size:clamp(22px,6vw,30px);color:#fef3c7;letter-spacing:4px;text-shadow:0 2px 14px #0008}
+  .overlay p{color:#dbeafe;font-size:13px;margin:0 0 10px}
+  .badge-new{background:linear-gradient(90deg,#fbbf24,#f59e0b);color:#451a03;font-size:12px;font-weight:800;padding:3px 12px;border-radius:20px;box-shadow:0 4px 14px #f59e0b66}
+  .btn{padding:11px 30px;border:0;border-radius:11px;background:linear-gradient(180deg,#fbbf24,#d97706);color:#451a03;font-size:16px;font-weight:800;cursor:pointer;letter-spacing:3px;box-shadow:0 8px 24px #f59e0b55}
+  .btn:hover{background:linear-gradient(180deg,#fcd34d,#f59e0b)}
+  .btn:active{transform:scale(.95)}
+  .hint{margin-top:12px;color:#5a7694;font-size:11px;letter-spacing:1px}
+  .kbd{display:inline-block;padding:2px 8px;border:1px solid #31577a;border-radius:6px;background:#0d2238;color:#7dd3fc;font-size:11px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>🐦 像素鸟</h1>
+  <p class="sub">F L A P P Y &nbsp;B I R D</p>
+  <div class="stage">
+    <canvas id="c" width="400" height="560"></canvas>
+    <div class="overlay hide" id="ov">
+      <div class="emoji" id="ovEmoji">🐦</div>
+      <h2 id="ovT">像素鸟</h2>
+      <p id="ovP"></p>
+      <div class="badge-new hide" id="newRec">🎉 新纪录！</div>
+      <button class="btn" id="btn">开始</button>
+    </div>
+  </div>
+  <p class="hint"><span class="kbd">空格</span> / <span class="kbd">Enter</span> / 点击画面 起飞</p>
+</main>
+<script>
+(()=>{
+const c=document.getElementById('c'),ctx=c.getContext('2d');
+const W=c.width,H=c.height,GROUNDY=H-64,PIPE_W=56,GAP=165;
+const $=id=>document.getElementById(id);
+const ov=$('ov'),ovT=$('ovT'),ovP=$('ovP'),btn=$('btn'),ovEmoji=$('ovEmoji'),newRec=$('newRec');
+
+let state='ready',score=0,best=+(localStorage.flappyBest||0);
+let bx=70,by=260,vy=0,rot=0,wingPhase=0;
+let pipes=[],groundX=0;
+let last=0;
+const clouds=[{x:60,y:80,s:1,v:.3},{x:210,y:135,s:.7,v:.45},{x:330,y:70,s:1.3,v:.22},{x:140,y:200,s:.5,v:.55}];
+
+function circleRect(cx,cy,r,rx,ry,rw,rh){
+  const nx=Math.max(rx,Math.min(cx,rx+rw));
+  const ny=Math.max(ry,Math.min(cy,ry+rh));
+  const dx=cx-nx,dy=cy-ny;
+  return dx*dx+dy*dy<=r*r;
+}
+function start(){
+  by=260;vy=0;rot=0;pipes=[];score=0;
+  state='play';showOv(false);
+}
+function flap(){
+  if(state==='ready'){start();vy=-7.4;}
+  else if(state==='play'){vy=-7.4;rot=-0.45;}
+}
+function die(){
+  state='over';
+  if(score>best){best=score;localStorage.flappyBest=best;}
+  ovEmoji.textContent='💥';
+  newRec.classList.toggle('hide',score<best||score<=0);
+  showOv(true,'游戏结束','得分 '+score+' · 最高 '+best,'再试一次');
+}
+function showOv(show,title,pt,bl){
+  ov.classList.toggle('hide',!show);
+  if(show){ovT.textContent=title;ovP.textContent=pt||'';btn.textContent=bl||'开始';}
+}
+btn.onclick=()=>{if(state==='ready'||state==='over')start();};
+addEventListener('keydown',e=>{
+  if(e.key===' '||e.key==='Enter'){e.preventDefault();flap();}
+});
+c.addEventListener('pointerdown',flap);
+
+function updateClouds(dt){
+  for(const cl of clouds){
+    cl.x-=cl.v*dt;
+    if(cl.x<-70)cl.x=W+70;
+  }
+}
+function drawClouds(){
+  ctx.fillStyle='rgba(255,255,255,.9)';
+  for(const cl of clouds){
+    ctx.beginPath();
+    ctx.arc(cl.x,cl.y,15*cl.s,0,7);
+    ctx.arc(cl.x+15*cl.s,cl.y-8*cl.s,11*cl.s,0,7);
+    ctx.arc(cl.x+28*cl.s,cl.y+2*cl.s,12*cl.s,0,7);
+    ctx.fill();
+  }
+}
+function drawSun(){
+  const g=ctx.createRadialGradient(330,78,8,330,78,120);
+  g.addColorStop(0,'rgba(253,224,71,.6)');g.addColorStop(1,'rgba(253,224,71,0)');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(330,78,120,0,7);ctx.fill();
+  ctx.fillStyle='rgba(253,224,71,.95)';ctx.beginPath();ctx.arc(330,78,26,0,7);ctx.fill();
+}
+function drawPipes(){
+  for(const p of pipes){
+    const topH=p.gy-GAP/2,botY=p.gy+GAP/2;
+    const g=ctx.createLinearGradient(p.x,0,p.x+PIPE_W,0);
+    g.addColorStop(0,'#3f6212');g.addColorStop(.45,'#84cc16');g.addColorStop(1,'#365314');
+    ctx.fillStyle=g;
+    ctx.fillRect(p.x,0,PIPE_W,topH);
+    ctx.fillRect(p.x,botY,PIPE_W,H-GROUNDY-botY);
+    ctx.fillStyle='#a3e635';
+    ctx.fillRect(p.x-3,topH-18,PIPE_W+6,18);
+    ctx.fillRect(p.x-3,botY,PIPE_W+6,18);
+    ctx.fillStyle='#4d7c0f';
+    ctx.fillRect(p.x-3,topH-18,PIPE_W+6,5);
+    ctx.fillRect(p.x-3,botY+13,PIPE_W+6,5);
+  }
+}
+function drawGround(){
+  const gd=ctx.createLinearGradient(0,GROUNDY,0,H);
+  gd.addColorStop(0,'#4d7c0f');gd.addColorStop(.2,'#3f6212');gd.addColorStop(1,'#1a2e05');
+  ctx.fillStyle=gd;ctx.fillRect(0,GROUNDY,W,H-GROUNDY);
+  ctx.fillStyle='#84cc16';ctx.fillRect(0,GROUNDY,W,6);
+  ctx.fillStyle='#65a30d';ctx.fillRect(0,GROUNDY+6,W,6);
+  ctx.fillStyle='rgba(0,0,0,.18)';
+  for(let i=-1;i<Math.ceil(W/40)+1;i++){
+    const sx=i*40-groundX%40;
+    ctx.fillRect(sx,GROUNDY+20,18,7);
+    ctx.fillRect(sx+20,GROUNDY+36,13,7);
+  }
+}
+function drawBird(){
+  ctx.save();
+  ctx.translate(bx,by);
+  ctx.rotate(rot);
+  const flapA=state==='play'?Math.sin(wingPhase)*0.9:Math.sin(wingPhase)*0.35;
+  // 翅膀（身体后方）
+  ctx.save();
+  ctx.translate(-4,1);ctx.rotate(flapA);
+  ctx.fillStyle='#f59e0b';
+  ctx.beginPath();ctx.ellipse(0,0,9,5.5,0,0,7);ctx.fill();
+  ctx.restore();
+  // 尾巴
+  ctx.fillStyle='#d97706';
+  ctx.beginPath();ctx.moveTo(-11,-1);ctx.lineTo(-19,-8);ctx.lineTo(-12,2);ctx.closePath();ctx.fill();
+  // 身体
+  const g=ctx.createRadialGradient(-3,-4,2,0,0,15);
+  g.addColorStop(0,'#fef08a');g.addColorStop(1,'#fbbf24');
+  ctx.fillStyle=g;
+  ctx.beginPath();ctx.ellipse(0,0,13,10.5,0,0,7);ctx.fill();
+  // 肚皮
+  ctx.fillStyle='#fef3c7';
+  ctx.beginPath();ctx.ellipse(2,5,8.5,5.5,0,0,7);ctx.fill();
+  // 眼睛
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(6,-4,4.6,0,7);ctx.fill();
+  ctx.fillStyle='#1e293b';ctx.beginPath();ctx.arc(7.4,-4,2.3,0,7);ctx.fill();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(8.2,-5,0.9,0,7);ctx.fill();
+  // 喙
+  ctx.fillStyle='#fb923c';
+  ctx.beginPath();ctx.moveTo(11,-1);ctx.lineTo(19,1.5);ctx.lineTo(11,3.5);ctx.closePath();ctx.fill();
+  ctx.restore();
+}
+function drawScore(){
+  if(state==='ready')return;
+  ctx.textAlign='center';
+  ctx.font='bold 36px system-ui';
+  ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillText(score,200,56);
+  ctx.fillStyle='#fff';ctx.fillText(score,200,54);
+  ctx.font='bold 12px system-ui';
+  ctx.fillStyle='rgba(255,255,255,.75)';
+  ctx.fillText('BEST '+best,200,74);
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  drawSun();
+  drawClouds();
+  drawPipes();
+  drawGround();
+  drawBird();
+  drawScore();
+}
+function loop(t){
+  requestAnimationFrame(loop);
+  if(!last)last=t;
+  let dt=Math.min(3,(t-last)/16.67)||1;
+  last=t;
+  wingPhase+=(state==='play'?0.4:0.12)*dt;
+  updateClouds(dt);
+  groundX-=2.4*dt;
+  if(state==='play'){
+    vy=Math.min(11,vy+0.42*dt);
+    by+=vy*dt;
+    rot=Math.max(-0.5,Math.min(0.9,vy*0.055));
+    if(!pipes.length||pipes[pipes.length-1].x<W-170){
+      pipes.push({x:W+12,gy:175+Math.random()*(330-175),scored:false});
+    }
+    for(const p of pipes)p.x-=2.4*dt;
+    pipes=pipes.filter(p=>p.x>-PIPE_W-10);
+    for(const p of pipes){
+      if(!p.scored&&p.x+PIPE_W<bx){p.scored=true;score++;}
+      if(circleRect(bx,by,12,p.x,0,PIPE_W,p.gy-GAP/2)||
+         circleRect(bx,by,12,p.x,p.gy+GAP/2,PIPE_W,H-GROUNDY-(p.gy+GAP/2))){
+        die();break;
+      }
+    }
+    if(by+12>=GROUNDY){by=GROUNDY-12;die();}
+    else if(by-12<0){by=12;vy=0;}
+  }else if(state==='ready'){
+    by=260+Math.sin(wingPhase)*9;
+  }
+  draw();
+}
+showOv(true,'🐦 像素鸟','点击 / 按空格 起飞','开始');
+loop(0);
+})();
+</script>
+</body>
+</html>

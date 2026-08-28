@@ -1,1 +1,151 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>🪙 抛硬币</title><style>*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#07130d;color:#dcfce7;font-family:system-ui,"Microsoft YaHei",sans-serif;display:grid;place-items:center;text-align:center}.wrap{width:min(92vw,520px);padding:24px}h1{font-size:clamp(28px,8vw,46px);color:#86efac;margin:0 0 8px;text-shadow:0 0 20px #22c55e66}.sub{color:#86a391;font-size:13px;margin-bottom:20px}.coin-area{height:240px;display:grid;place-items:center;perspective:800px}.coin{width:150px;height:150px;position:relative;transform-style:preserve-3d}.face{position:absolute;inset:0;border-radius:50%;display:grid;place-items:center;font-size:64px;backface-visibility:hidden;border:8px solid #a16207;background:radial-gradient(circle at 35% 28%,#fde68a,#f59e0b 58%,#92400e);box-shadow:inset 0 0 0 4px #fef3c766,0 12px 30px #0008}.tail{transform:rotateY(180deg)}.coin.flipping{animation:flip 1s cubic-bezier(.25,.7,.45,1)}.coin.flipping.tail-result{animation-name:flip-tail}@keyframes flip{to{transform:rotateY(1800deg) translateY(-40px)}}@keyframes flip-tail{to{transform:rotateY(1980deg) translateY(-40px)}}#result{height:36px;font-size:22px;color:#facc15;font-weight:700}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0}.stat{padding:11px 6px;border:1px solid #166534;border-radius:10px;background:#052e16}.stat b{display:block;color:#bbf7d0;font-size:21px}.stat span{font-size:11px;color:#86a391}button{padding:12px 25px;border:0;border-radius:9px;background:#16a34a;color:#fff;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 6px 18px #16a34a44}button:active{transform:scale(.95)}.reset{margin-top:10px;padding:8px 14px;background:#14532d;font-size:12px}.tip{color:#527563;font-size:12px;margin-top:18px}</style></head><body><main class="wrap"><h1>🪙 抛硬币</h1><p class="sub">把选择交给概率，正面还是反面？</p><div class="coin-area"><div class="coin" id="coin"><div class="face head">正</div><div class="face tail">反</div></div></div><div id="result">准备抛掷</div><div class="stats"><div class="stat"><b id="heads">0</b><span>正面</span></div><div class="stat"><b id="tails">0</b><span>反面</span></div><div class="stat"><b id="total">0</b><span>总次数</span></div></div><button id="flip" onclick="flip()">抛一次</button><br><button class="reset" onclick="resetStats()">重置统计</button><p class="tip">点击按钮或按空格键</p></main><script>let heads=0,tails=0,busy=false;const $=id=>document.getElementById(id);function flip(){if(busy)return;busy=true;result.textContent='硬币飞行中…';coin.classList.remove('flipping','tail-result');void coin.offsetWidth;let isHead=Math.random()<.5;if(!isHead)coin.classList.add('tail-result');coin.classList.add('flipping');setTimeout(()=>{if(isHead)heads++;else tails++;result.textContent=isHead?'结果：正面':'结果：反面';headsEl.textContent=heads;tailsEl.textContent=tails;total.textContent=heads+tails;busy=false},1000)}function resetStats(){heads=tails=0;result.textContent='准备抛掷';headsEl.textContent=tailsEl.textContent=total.textContent='0'}const headsEl=$('heads'),tailsEl=$('tails');addEventListener('keydown',e=>{if(e.key===' '){e.preventDefault();flip()}})</script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>🪙 抛硬币</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -10%,#173d2a 0%,#07130d 55%,#030a06 100%);color:#dcfce7;font:15px system-ui,"Microsoft YaHei",sans-serif;display:grid;place-items:center;text-align:center;user-select:none;-webkit-user-select:none}
+  .wrap{width:min(92vw,540px);padding:22px 10px 30px}
+  h1{margin:0 0 2px;font-size:clamp(28px,8vw,42px);color:#fcd34d;text-shadow:0 0 26px #f59e0b55,0 0 60px #b4530966}
+  .sub{color:#6d8a7a;font-size:11px;margin:0 0 6px;letter-spacing:5px}
+  .coin-area{height:250px;display:grid;place-items:center;perspective:900px}
+  .coin{width:150px;height:150px;position:relative;transform-style:preserve-3d}
+  .coin.flipping{animation:flip .95s cubic-bezier(.3,.55,.4,1)}
+  .coin.flipping.tail{animation-name:flip-tail}
+  .coin.landed-tail{transform:rotateY(180deg)}
+  @keyframes flip{to{transform:rotateY(1440deg) translateY(-38px)}}
+  @keyframes flip-tail{to{transform:rotateY(1620deg) translateY(-38px)}}
+  .face{position:absolute;inset:0;border-radius:50%;display:grid;place-items:center;backface-visibility:hidden;
+    border:7px solid #b45309;
+    background:radial-gradient(circle at 32% 26%,#fff7cc 0%,#ffe082 22%,#f6c453 46%,#d99a2b 72%,#a8691a 100%);
+    box-shadow:inset 0 0 0 3px #b4530966,inset 0 -10px 20px #7c4a0e88,inset 0 10px 20px #fff3b0aa,0 16px 38px #000a}
+  .face .glyph{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;font-size:52px;font-weight:900;color:#78350f;
+    background:radial-gradient(circle at 40% 30%,#ffe9a8 0%,#eec04f 55%,#c47f1e 100%);
+    box-shadow:inset 0 2px 6px #fff8,inset 0 -4px 8px #7c4a0e88}
+  .face.tail{transform:rotateY(180deg)}
+  #result{height:34px;font-size:21px;font-weight:800;color:#fcd34d;letter-spacing:2px;margin-top:4px}
+  #result.small{font-size:15px;color:#86a391;font-weight:600}
+  .seq{height:26px;margin:6px auto 2px;display:flex;justify-content:center;gap:5px;min-height:26px}
+  .chip{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;font-size:12px;font-weight:800;animation:pop .25s}
+  .chip.h{background:linear-gradient(180deg,#fcd34d,#d97706);color:#451a03}
+  .chip.t{background:linear-gradient(180deg,#64748b,#334155);color:#e2e8f0}
+  @keyframes pop{from{transform:scale(.3);opacity:0}}
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:14px 0}
+  .stat{padding:10px 4px;border:1px solid #1f3d2e;border-radius:11px;background:linear-gradient(180deg,#0c2218,#081710);box-shadow:inset 0 1px 0 #2a5a3f33}
+  .stat b{display:block;color:#fef9c3;font-size:19px;margin-bottom:2px}
+  .stat span{font-size:10px;color:#6d8a7a;letter-spacing:1px}
+  .stat.hot{border-color:#b45309;box-shadow:0 0 16px #b4530944,inset 0 1px 0 #2a5a3f33}
+  .stat.hot b{color:#fcd34d}
+  button{padding:12px 30px;border:1px solid #d9770655;border-radius:11px;background:linear-gradient(180deg,#92400e,#78350f);color:#fef3c7;font-size:16px;font-weight:800;cursor:pointer;letter-spacing:3px;box-shadow:0 6px 22px #b4530933,inset 0 1px 0 #fbbf2466}
+  button:hover{background:linear-gradient(180deg,#a35711,#85430f);box-shadow:0 8px 28px #d9770644}
+  button:active{transform:scale(.95)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .reset{margin-top:10px;padding:8px 16px;background:transparent;border:1px solid #2a4a37;color:#6d8a7a;font-size:12px;letter-spacing:1px;box-shadow:none}
+  .reset:hover{color:#a7c9b4;border-color:#3a6a4d}
+  .tip{color:#4a6b58;font-size:11px;margin-top:16px;letter-spacing:1px}
+  .kbd{display:inline-block;padding:1px 7px;border:1px solid #2a4a37;border-radius:5px;background:#0c2218;color:#a7c9b4;font-size:10px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>🪙 抛硬币</h1>
+  <p class="sub">C O I N &nbsp;F L I P</p>
+  <div class="coin-area">
+    <div class="coin" id="coin">
+      <div class="face head"><div class="glyph">正</div></div>
+      <div class="face tail"><div class="glyph">反</div></div>
+    </div>
+  </div>
+  <div id="result">准备抛掷 · 按空格</div>
+  <div class="seq" id="seq"></div>
+  <div class="stats">
+    <div class="stat"><b id="heads">0</b><span>正面</span></div>
+    <div class="stat"><b id="tails">0</b><span>反面</span></div>
+    <div class="stat"><b id="total">0</b><span>总次数</span></div>
+    <div class="stat hot"><b id="cur">0</b><span>当前连续</span></div>
+    <div class="stat hot"><b id="max">0</b><span>最长连续</span></div>
+  </div>
+  <button id="flip">抛 一 次</button><br>
+  <button class="reset" id="reset">重置统计</button>
+  <p class="tip">点击按钮或按 <span class="kbd">空格</span> 抛掷 · 统计自动保存在本地</p>
+</main>
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const coin=$('coin'),result=$('result'),seqEl=$('seq');
+const headsEl=$('heads'),tailsEl=$('tails'),totalEl=$('total'),curEl=$('cur'),maxEl=$('max');
+const flipBtn=$('flip'),resetBtn=$('reset');
+
+let st=JSON.parse(localStorage.coinflip||'{"h":0,"t":0,"max":0,"seq":[]}');
+let h=+st.h||0,t=+st.t||0,max=+st.max||0;
+let seq=Array.isArray(st.seq)?st.seq:[];
+let last=seq.length?seq[seq.length-1]:'';
+let cur=0;
+// 由最近序列推当前连续
+for(let i=seq.length-1;i>=0;i--){
+  if(seq[i]===last)cur++;
+  else break;
+}
+let busy=false;
+
+function save(){localStorage.coinflip=JSON.stringify({h,t,max,seq});}
+function render(){
+  headsEl.textContent=h;
+  tailsEl.textContent=t;
+  totalEl.textContent=h+t;
+  curEl.textContent=cur;
+  maxEl.textContent=max;
+  seqEl.innerHTML='';
+  for(const s of seq){
+    const d=document.createElement('div');
+    d.className='chip '+(s==='H'?'h':'t');
+    d.textContent=s==='H'?'正':'反';
+    seqEl.appendChild(d);
+  }
+}
+function flip(){
+  if(busy)return;
+  busy=true;
+  flipBtn.disabled=true;
+  const isHead=Math.random()<0.5;
+  result.className='';
+  result.textContent='硬币飞行中…';
+  coin.classList.remove('flipping','landed-tail');
+  void coin.offsetWidth;
+  if(!isHead)coin.classList.add('landed-tail');
+  coin.classList.add('flipping');
+  if(!isHead)coin.classList.add('tail');
+  setTimeout(()=>{
+    coin.classList.remove('flipping','tail');
+    if(isHead)h++;else t++;
+    const tag=isHead?'H':'T';
+    if(last===tag)cur++;else cur=1;
+    last=tag;
+    if(cur>max)max=cur;
+    seq.push(tag);
+    if(seq.length>12)seq.shift();
+    result.className='small';
+    result.textContent='结果：'+(isHead?'正面':'反面')+(cur>=2?'（连续 '+cur+' 次）':'');
+    save();render();
+    busy=false;
+    flipBtn.disabled=false;
+  },1000);
+}
+function resetStats(){
+  h=t=max=cur=0;last='';seq=[];
+  result.className='';
+  result.textContent='准备抛掷 · 按空格';
+  save();render();
+}
+flipBtn.onclick=flip;
+resetBtn.onclick=resetStats;
+addEventListener('keydown',e=>{
+  if(e.key===' '){e.preventDefault();flip();}
+});
+render();
+})();
+</script>
+</body>
+</html>

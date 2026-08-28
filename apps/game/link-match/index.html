@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🀄 连连看</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; color: #d3e6ff;
+    font: 15px/1.5 "Segoe UI", system-ui, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -10%, #0b2547 0%, #071531 45%, #040b1c 100%);
+    display: flex; justify-content: center; padding: 4vh 16px;
+  }
+  .wrap { width: 100%; max-width: 520px; }
+  header { text-align: center; margin-bottom: 14px; }
+  header h1 {
+    margin: 0; font-size: 26px; letter-spacing: 2px;
+    color: #38e0ff; text-shadow: 0 0 18px rgba(56,224,255,.55);
+  }
+  header p { margin: 6px 0 0; color: #7d93b8; font-size: 13px; }
+
+  .panel {
+    background: rgba(16,32,64,.5); border: 1px solid rgba(90,160,255,.25);
+    border-radius: 18px; padding: 16px; box-shadow: 0 20px 50px rgba(0,0,0,.55);
+    backdrop-filter: blur(8px);
+  }
+
+  .hud { display: flex; justify-content: space-between; margin-bottom: 12px; }
+  .hud-item { text-align: center; min-width: 64px; }
+  .hud-item b { display: block; font-size: 19px; color: #38e0ff; font-variant-numeric: tabular-nums; }
+  .hud-item span { font-size: 11px; color: #7d93b8; }
+  .hud-item .pair { color: #fbbf24; }
+  .hud-item .combo { color: #ff5c7a; }
+
+  .board-box {
+    position: relative; border-radius: 12px; padding: 6px;
+    background: #071226; border: 1px solid rgba(90,160,255,.3);
+    box-shadow: inset 0 0 24px rgba(0,0,0,.6);
+  }
+  .board { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; width: min(88vw, 430px); margin: 0 auto; }
+  .tile {
+    aspect-ratio: 1; display: grid; place-items: center;
+    font-size: clamp(16px, 5vw, 24px); cursor: pointer; user-select: none;
+    background: linear-gradient(180deg,#142a52,#0d1c3a);
+    border: 1px solid #24406e; border-radius: 8px;
+    transition: transform .1s, box-shadow .15s, border-color .15s;
+  }
+  .tile:hover { transform: translateY(-1px); border-color: #38e0ff; }
+  .tile.selected {
+    border-color: #38e0ff;
+    box-shadow: 0 0 12px rgba(56,224,255,.6), inset 0 0 8px rgba(56,224,255,.25);
+  }
+  .tile.hint {
+    border-color: #fbbf24;
+    box-shadow: 0 0 14px rgba(251,191,36,.7), inset 0 0 8px rgba(251,191,36,.3);
+    animation: pulse .6s infinite alternate;
+  }
+  .tile.empty { background: transparent; border-color: transparent; cursor: default; pointer-events: none; }
+  .tile.empty:hover { transform: none; border-color: transparent; }
+  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.12); } }
+
+  /* 连线层：与棋盘内边距一致 */
+  .line-svg { position: absolute; top: 6px; left: 6px; right: 6px; bottom: 6px; pointer-events: none; }
+
+  .actions { display: flex; gap: 8px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+  button {
+    padding: 9px 18px; border: 0; border-radius: 9px; cursor: pointer;
+    font-size: 14px; font-weight: 600; color: #042036;
+    background: linear-gradient(180deg,#38e0ff,#0ea5e9);
+    box-shadow: 0 4px 12px rgba(56,224,255,.3);
+    transition: filter .12s, transform .12s;
+  }
+  button:hover { filter: brightness(1.1); }
+  button:active { transform: scale(.96); }
+  button.ghost { background: transparent; color: #7d93b8; border: 1px solid #2c4a78; box-shadow: none; }
+
+  .hint-text { text-align: center; color: #5d7ba6; font-size: 12px; margin-top: 12px; }
+
+  /* 获胜浮层 */
+  .overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px;
+    background: rgba(4,11,28,.85); backdrop-filter: blur(4px);
+    border-radius: 12px; transition: opacity .3s;
+  }
+  .overlay.hidden { opacity: 0; pointer-events: none; }
+  .overlay h2 { margin: 0; font-size: 30px; color: #38e0ff; text-shadow: 0 0 24px rgba(56,224,255,.6); letter-spacing: 4px; }
+  .overlay p { margin: 0; color: #c3d6f0; font-size: 15px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🀄 霓虹连连看</h1>
+    <p>点击两个相同图案，路径折角不超过 2 即可消除</p>
+  </header>
+
+  <div class="panel">
+    <div class="hud">
+      <div class="hud-item"><b id="remaining">40</b><span>剩余对数</span></div>
+      <div class="hud-item"><b id="score">0</b><span>分数</span></div>
+      <div class="hud-item"><b id="time">00:00</b><span>用时</span></div>
+      <div class="hud-item"><b class="combo" id="combo">--</b><span>连击</span></div>
+    </div>
+
+    <div class="board-box">
+      <div id="board" class="board"></div>
+      <svg class="line-svg" id="lineSvg"></svg>
+      <div class="overlay hidden" id="overlay">
+        <h2>🎉 全部消除！</h2>
+        <p id="overInfo"></p>
+        <button id="againBtn">再来一局</button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="restartBtn">重新开始</button>
+      <button class="ghost" id="hintBtn">提示</button>
+      <button class="ghost" id="shuffleBtn">洗牌</button>
+    </div>
+    <div class="hint-text">路径可绕出棋盘边缘 · 卡住时点「洗牌」</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const ROWS = 8, COLS = 10;
+  const EMOJIS = [
+    '🍎','🍌','🍇','🍉','🍓','🥝','🍑','🍒','🍍','🥭',
+    '🌽','🥕','🍆','🍅','🥦','🥒','🥔','🌶','🍗','🍖',
+    '🥩','🍔','🍟','🍕','🌭','🥪','🍝','🍜','🍣','🍤',
+    '🍦','🍧','🍰','🎂','🍪','🍩','🍫','🍬','🍭','🥧'
+  ];
+  const boardEl = document.getElementById('board');
+  const lineSvg = document.getElementById('lineSvg');
+  const remainingEl = document.getElementById('remaining');
+  const scoreEl = document.getElementById('score');
+  const timeEl = document.getElementById('time');
+  const comboEl = document.getElementById('combo');
+  const overlay = document.getElementById('overlay');
+  const overInfo = document.getElementById('overInfo');
+
+  // padded[r][c] 为 null 表示空格；ROWS+2 x COLS+2，四周留一圈可绕行的空白
+  let padded, tiles = [], selected = null, score, pairs, combo, comboTs, startTime, timer = null, done = false;
+
+  function build() {
+    const list = [];
+    EMOJIS.forEach(e => { list.push(e, e); });
+    // Fisher-Yates 洗牌
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.random() * (i + 1) | 0;
+      [list[i], list[j]] = [list[j], list[i]];
+    }
+    padded = Array.from({ length: ROWS + 2 }, () => Array(COLS + 2).fill(null));
+    let k = 0;
+    for (let r = 1; r <= ROWS; r++)
+      for (let c = 1; c <= COLS; c++)
+        padded[r][c] = list[k++];
+  }
+
+  function reset() {
+    build();
+    score = 0; pairs = EMOJIS.length; combo = 0; comboTs = 0; selected = null; done = false;
+    scoreEl.textContent = 0;
+    remainingEl.textContent = pairs;
+    comboEl.textContent = '--';
+    overlay.classList.add('hidden');
+    clearInterval(timer);
+    startTime = Date.now();
+    timer = setInterval(updateTime, 500);
+    render();
+  }
+
+  function updateTime() {
+    if (done) return;
+    const s = Math.floor((Date.now() - startTime) / 1000);
+    const mm = String(Math.floor(s / 60)).padStart(2, '0');
+    const ss = String(s % 60).padStart(2, '0');
+    timeEl.textContent = mm + ':' + ss;
+  }
+
+  function render() {
+    boardEl.innerHTML = '';
+    lineSvg.innerHTML = '';
+    tiles = [];
+    for (let r = 1; r <= ROWS; r++) {
+      for (let c = 1; c <= COLS; c++) {
+        const d = document.createElement('div');
+        d.className = 'tile' + (padded[r][c] ? '' : ' empty');
+        d.textContent = padded[r][c] || '';
+        d.dataset.r = r; d.dataset.c = c;
+        d.addEventListener('click', () => onTile(r, c));
+        boardEl.append(d);
+        tiles.push(d);
+      }
+    }
+    updateHud();
+  }
+
+  function updateHud() {
+    remainingEl.textContent = pairs;
+    scoreEl.textContent = score;
+  }
+
+  // —— 连通判定：BFS 带方向与转弯数（<=2 折角）——
+  function findPath(a, b) {
+    const [ar, ac] = a, [br, bc] = b;
+    if (ar === br && ac === bc) return null;
+    const id = padded[ar][ac];
+    if (!id || padded[br][bc] !== id) return null;
+    const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+    const visited = new Set();
+    const prev = new Map();
+    const key = (r, c, d, t) => r + ',' + c + ',' + d + ',' + t;
+    const queue = [];
+    for (let d = 0; d < 4; d++) {
+      const k = key(ar, ac, d, 0);
+      visited.add(k);
+      queue.push([ar, ac, d, 0]);
+    }
+    while (queue.length) {
+      const [r, c, d, t] = queue.shift();
+      if (r === br && c === bc) {
+        const path = [[ar, ac]];
+        let k = key(r, c, d, t);
+        while (prev.has(k)) {
+          const [pk, pr, pc] = prev.get(k);
+          path.unshift([pr, pc]);
+          k = pk;
+        }
+        return path;
+      }
+      for (let nd = 0; nd < 4; nd++) {
+        const nt = t + (nd === d ? 0 : 1);
+        if (nt > 2) continue;
+        const nr = r + dirs[nd][0], nc = c + dirs[nd][1];
+        if (nr < 0 || nr >= ROWS + 2 || nc < 0 || nc >= COLS + 2) continue;
+        const isEnd = nr === br && nc === bc;
+        if (!isEnd && padded[nr][nc] !== null) continue;
+        const k2 = key(nr, nc, nd, nt);
+        if (visited.has(k2)) continue;
+        visited.add(k2);
+        prev.set(k2, [key(r, c, d, t), r, c]);
+        queue.push([nr, nc, nd, nt]);
+      }
+    }
+    return null;
+  }
+
+  function onTile(r, c) {
+    if (done || !padded[r][c]) return;
+    clearSelection();
+    if (!selected) {
+      selected = [r, c];
+      markTile(r, c, 'selected');
+      return;
+    }
+    const [sr, sc] = selected;
+    selected = null;
+    if (sr === r && sc === c) return; // 点同一个取消
+    const path = findPath([sr, sc], [r, c]);
+    if (!path) {
+      markTile(r, c, 'selected');
+      selected = [r, c];
+      flashLine([[sr, sc], [r, c]], true);
+      return;
+    }
+    // 消除
+    padded[sr][sc] = padded[r][c] = null;
+    pairs--; 
+    const now = Date.now();
+    combo = (now - comboTs < 2500) ? combo + 1 : 1;
+    comboTs = now;
+    score += 10 + (combo - 1) * 2;
+    comboEl.textContent = combo >= 2 ? 'x' + combo : '--';
+    flashLine(path, false);
+    render();
+    if (pairs === 0) win();
+  }
+
+  function markTile(r, c, cls) {
+    const i = (r - 1) * COLS + (c - 1);
+    const el = tiles[i];
+    if (el) el.classList.add(cls);
+  }
+  function clearSelection() {
+    document.querySelectorAll('.tile.selected').forEach(t => t.classList.remove('selected'));
+  }
+
+  // 画连线（失败红、成功青）
+  function flashLine(path, isBad) {
+    const box = boardEl.getBoundingClientRect();
+    const cellW = box.width / COLS, cellH = box.height / ROWS;
+    const P = (r, c) => {
+      // padded 坐标 → 屏幕中心
+      const x = (c - 1) * cellW + cellW / 2;
+      const y = (r - 1) * cellH + cellH / 2;
+      return [x, y];
+    };
+    const pts = path.map(([r, c]) => P(r, c));
+    lineSvg.innerHTML = '';
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = lineSvg;
+    svg.setAttribute('viewBox', '0 0 ' + box.width + ' ' + box.height);
+    svg.setAttribute('width', box.width);
+    svg.setAttribute('height', box.height);
+    // 路径折线
+    let d = 'M' + pts[0][0] + ',' + pts[0][1];
+    for (let i = 1; i < pts.length; i++) d += ' L' + pts[i][0] + ',' + pts[i][1];
+    const line = document.createElementNS(ns, 'path');
+    line.setAttribute('d', d);
+    line.setAttribute('stroke', isBad ? '#ff5c7a' : '#38e0ff');
+    line.setAttribute('stroke-width', '3');
+    line.setAttribute('stroke-linecap', 'round');
+    line.setAttribute('stroke-linejoin', 'round');
+    line.setAttribute('fill', 'none');
+    line.setAttribute('stroke-dasharray', '6 4');
+    svg.append(line);
+    setTimeout(() => { svg.innerHTML = ''; }, 450);
+  }
+
+  // 找一对可消除的
+  function findPair() {
+    const cells = [];
+    for (let r = 1; r <= ROWS; r++)
+      for (let c = 1; c <= COLS; c++)
+        if (padded[r][c]) cells.push([r, c]);
+    for (let i = 0; i < cells.length; i++)
+      for (let j = i + 1; j < cells.length; j++) {
+        const a = cells[i], b = cells[j];
+        if (padded[a[0]][a[1]] === padded[b[0]][b[1]] && findPath(a, b))
+          return [a, b];
+      }
+    return null;
+  }
+
+  function hint() {
+    if (done) return;
+    const pair = findPair();
+    if (!pair) { shuffle(); return; }
+    const [a, b] = pair;
+    markTile(a[0], a[1], 'hint');
+    markTile(b[0], b[1], 'hint');
+    setTimeout(() => {
+      document.querySelectorAll('.tile.hint').forEach(t => t.classList.remove('hint'));
+    }, 1200);
+  }
+
+  function shuffle() {
+    if (done) return;
+    const rest = [];
+    for (let r = 1; r <= ROWS; r++)
+      for (let c = 1; c <= COLS; c++)
+        if (padded[r][c]) rest.push(padded[r][c]);
+    for (let i = rest.length - 1; i > 0; i--) {
+      const j = Math.random() * (i + 1) | 0;
+      [rest[i], rest[j]] = [rest[j], rest[i]];
+    }
+    let k = 0;
+    for (let r = 1; r <= ROWS; r++)
+      for (let c = 1; c <= COLS; c++)
+        padded[r][c] = rest[k++] || null;
+    selected = null;
+    render();
+  }
+
+  function win() {
+    done = true;
+    clearInterval(timer);
+    const s = Math.floor((Date.now() - startTime) / 1000);
+    overInfo.textContent = '用时 ' + Math.floor(s / 60) + ' 分 ' + (s % 60) + ' 秒 · 得分 ' + score;
+    overlay.classList.remove('hidden');
+  }
+
+  document.getElementById('restartBtn').addEventListener('click', reset);
+  document.getElementById('againBtn').addEventListener('click', reset);
+  document.getElementById('hintBtn').addEventListener('click', hint);
+  document.getElementById('shuffleBtn').addEventListener('click', shuffle);
+
+  reset();
+})();
+</script>
+</body>
+</html>

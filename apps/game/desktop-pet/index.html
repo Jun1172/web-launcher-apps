@@ -1,1 +1,160 @@
-<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>🐾 电子宠物</title><style>body{margin:0;background:#1e1b4b;color:#f5d0fe;font:16px system-ui;text-align:center}main{max-width:500px;margin:6vh auto}.pet{font-size:130px;height:180px;animation:bob 1.8s infinite}@keyframes bob{50%{transform:translateY(-12px)}}.bar{height:16px;background:#312e81;border-radius:10px;margin:12px}.fill{height:100%;background:#e879f9;border-radius:10px}button{padding:11px 17px;margin:5px;border:0;border-radius:8px;background:#c026d3;color:#fff}</style><main><h1>🐾 我的电子宠物</h1><div class="pet" id="pet">🐱</div><h2 id="mood">等你陪伴</h2><p>饱食度</p><div class="bar"><div class="fill" id="food"></div></div><button onclick="feed()">🍎 喂食</button><button onclick="play()">✨ 抚摸</button><button onclick="clean()">🧹 清理</button></main><script>let state=JSON.parse(localStorage.pet||'{"food":70,"mood":"等你陪伴"}');function save(){localStorage.pet=JSON.stringify(state);food.style.width=state.food+'%';mood.textContent=state.mood}function feed(){state.food=Math.min(100,state.food+15);state.mood='好好吃，谢谢你！';pet.textContent='😺';save()}function play(){state.food=Math.max(0,state.food-5);state.mood='开心地跳起来！';pet.textContent='😸';save()}function clean(){state.mood='房间变干净啦';pet.textContent='🐱';save()}setInterval(()=>{state.food=Math.max(0,state.food-1);if(state.food<25)state.mood='我有点饿了…';save()},10000);save()</script>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>🐾 电子宠物</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -10%,#2b1a4d 0%,#171033 55%,#0a0718 100%);color:#ede9fe;font:15px system-ui,"Microsoft YaHei",sans-serif;display:grid;place-items:center;text-align:center;user-select:none;-webkit-user-select:none}
+  .wrap{width:min(92vw,520px);padding:22px 10px 30px}
+  h1{margin:0 0 2px;font-size:clamp(26px,7vw,38px);color:#e879f9;text-shadow:0 0 26px #c026d355,0 0 60px #a21caf44}
+  .sub{color:#7c6a9e;font-size:11px;margin:0 0 16px;letter-spacing:4px}
+  .pet-card{background:linear-gradient(160deg,#241742,#181030);border:1px solid #4c2d7d;border-radius:18px;padding:18px 16px 14px;box-shadow:0 14px 40px #000a,inset 0 1px 0 #7c5aa833}
+  .pet-stage{position:relative;height:170px;display:grid;place-items:center}
+  .pet{font-size:110px;line-height:1;filter:drop-shadow(0 10px 22px #a21caf44);animation:bob 1.8s ease-in-out infinite}
+  .pet.sleep{animation:none;filter:grayscale(.25) drop-shadow(0 6px 14px #0008)}
+  @keyframes bob{50%{transform:translateY(-10px)}}
+  .badge{position:absolute;top:6px;right:6px;padding:4px 10px;border-radius:20px;font-size:12px;background:#2a1d4a;border:1px solid #5b3a94;color:#d8b4fe}
+  .lvline{display:flex;align-items:center;gap:10px;margin-top:6px}
+  .lvl{font-size:13px;font-weight:800;color:#f0abfc;white-space:nowrap}
+  .expbar{flex:1;height:8px;background:#1e1338;border-radius:6px;overflow:hidden;border:1px solid #3b2766}
+  .expbar .fill{height:100%;background:linear-gradient(90deg,#d946ef,#8b5cf6);border-radius:6px;transition:width .3s}
+  .speech{min-height:44px;margin:12px 0;padding:10px 14px;border-radius:12px;background:linear-gradient(160deg,#24174288,#18103088);border:1px solid #4c2d7d66;font-size:14px;color:#ddd6fe;display:grid;place-items:center}
+  .bars{display:grid;gap:9px;margin-bottom:14px}
+  .bar-row{display:grid;grid-template-columns:52px 1fr 34px;align-items:center;gap:9px}
+  .bar-row .lab{font-size:13px;color:#c4b5fd;text-align:left}
+  .bar-row .val{font-size:12px;color:#8b7bb0;text-align:right;font-variant-numeric:tabular-nums}
+  .bar{height:11px;background:#1e1338;border-radius:7px;overflow:hidden;border:1px solid #3b2766}
+  .bar .fill{height:100%;border-radius:7px;transition:width .3s,background .3s}
+  .bar .fill.hi{background:linear-gradient(90deg,#34d399,#10b981)}
+  .bar .fill.mid{background:linear-gradient(90deg,#fbbf24,#f59e0b)}
+  .bar .fill.lo{background:linear-gradient(90deg,#f87171,#ef4444)}
+  .actions{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .actions button{padding:11px 2px;border:1px solid #5b3a9466;border-radius:12px;background:linear-gradient(180deg,#2f1f55,#241741);color:#e9d5ff;font-size:12px;cursor:pointer;box-shadow:inset 0 1px 0 #7c5aa833}
+  .actions button:hover{background:linear-gradient(180deg,#3b2a6b,#2c1c4e);border-color:#8b5cf6aa}
+  .actions button:active{transform:scale(.94)}
+  .actions button b{display:block;font-size:21px;margin-bottom:4px}
+  .tip{color:#5d4b82;font-size:11px;margin-top:14px;letter-spacing:1px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>🐾 电子宠物</h1>
+  <p class="sub">V I R T U A L &nbsp;P E T</p>
+  <div class="pet-card">
+    <div class="pet-stage">
+      <div class="pet" id="pet">🥚</div>
+      <span class="badge" id="badge">正常</span>
+    </div>
+    <div class="lvline">
+      <span class="lvl" id="lvl">Lv.1</span>
+      <div class="expbar"><div class="fill" id="exp" style="width:0%"></div></div>
+    </div>
+  </div>
+  <div class="speech" id="speech">你好呀～</div>
+  <div class="bars">
+    <div class="bar-row"><span class="lab">🍖 饱食</span><div class="bar"><div class="fill hi" id="bfood"></div></div><span class="val" id="vfood">0</span></div>
+    <div class="bar-row"><span class="lab">😊 心情</span><div class="bar"><div class="fill hi" id="bmood"></div></div><span class="val" id="vmood">0</span></div>
+    <div class="bar-row"><span class="lab">⚡ 精力</span><div class="bar"><div class="fill hi" id="benergy"></div></div><span class="val" id="venergy">0</span></div>
+    <div class="bar-row"><span class="lab">🛁 清洁</span><div class="bar"><div class="fill hi" id="bclean"></div></div><span class="val" id="vclean">0</span></div>
+  </div>
+  <div class="actions">
+    <button data-a="feed"><b>🍎</b>喂食</button>
+    <button data-a="play"><b>🎾</b>玩耍</button>
+    <button data-a="bath"><b>🛁</b>洗澡</button>
+    <button data-a="sleep"><b>💤</b>睡觉</button>
+    <button data-a="train"><b>📖</b>训练</button>
+  </div>
+  <p class="tip">状态每 5 秒自动变化 · 喂食/玩耍/洗澡/睡觉/训练会改变属性 · 数据自动保存在本地</p>
+</main>
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const petEl=$('pet'),badgeEl=$('badge'),speech=$('speech'),lvlEl=$('lvl');
+const bars={food:$('bfood'),mood:$('bmood'),energy:$('benergy'),clean:$('bclean')};
+const vals={food:$('vfood'),mood:$('vmood'),energy:$('venergy'),clean:$('vclean')};
+const expEl=$('exp');
+
+const INIT={food:75,mood:75,energy:70,clean:70,exp:0};
+let s=Object.assign({},INIT,JSON.parse(localStorage.pet||'{}'));
+s.food=+s.food||75;s.mood=+s.mood||75;s.energy=+s.energy||70;s.clean=+s.clean||70;s.exp=+s.exp||0;
+
+const LEVEL_STEP=60;
+const STAGE=[[1,'🥚'],[2,'🐣'],[4,'🐱'],[7,'🐈'],[10,'🐆']];
+function level(){return Math.min(10,1+Math.floor(s.exp/LEVEL_STEP));}
+function stageEmoji(lv){
+  let e='🥚';
+  for(const [min,em] of STAGE)if(lv>=min)e=em;
+  return e;
+}
+function cond(){
+  if(s.food<=15)return ['😿','饿了'];
+  if(s.clean<=15)return ['🤢','脏兮兮'];
+  if(s.energy<=15)return ['😴','困了'];
+  if(s.mood<=15)return ['😞','不开心'];
+  if(s.food<=35)return ['🙂','有点饿'];
+  if(s.clean<=35)return ['🙄','想洗澡'];
+  if(s.energy<=35)return ['🥱','有点累'];
+  if(s.mood<=35)return ['😐','有点无聊'];
+  return ['','心情不错'];
+}
+const SEVERE=['😿','🤢','😴','😞'];
+function render(){
+  for(const k of ['food','mood','energy','clean']){
+    const v=Math.max(0,Math.min(100,s[k]));
+    const f=bars[k],el=vals[k];
+    f.className='fill '+(v<=20?'lo':v<=40?'mid':'hi');
+    f.style.width=v+'%';
+    el.textContent=Math.round(v);
+  }
+  const lv=level();
+  lvlEl.textContent='Lv.'+lv;
+  expEl.style.width=((s.exp%LEVEL_STEP)/LEVEL_STEP*100)+'%';
+  const [cf,cl]=cond();
+  if(SEVERE.includes(cf)){petEl.textContent=cf;petEl.classList.toggle('sleep',cf==='😴');}
+  else{petEl.textContent=stageEmoji(lv);petEl.classList.remove('sleep');}
+  badgeEl.textContent=cl;
+  save();
+}
+function save(){localStorage.pet=JSON.stringify({food:s.food,mood:s.mood,energy:s.energy,clean:s.clean,exp:s.exp});}
+function say(t){speech.textContent=t;}
+function rnd(a){return a[Math.random()*a.length|0];}
+function add(k,v){s[k]=Math.max(0,Math.min(100,s[k]+v));}
+function gain(exp){
+  const old=level();
+  s.exp+=exp;
+  const lv=level();
+  if(lv>old)return '🎉 进化到 Lv.'+lv+' 啦！'+stageEmoji(lv);
+  return '';
+}
+
+const ACT={
+  feed:()=>{add('food',25);add('mood',5);const ev=gain(3);say(ev||rnd(['啊呜啊呜～好好吃！','再来一块！','吃饱了好满足 😋']));},
+  play:()=>{add('mood',22);add('energy',-10);add('food',-4);const ev=gain(5);say(ev||rnd(['接住啦！好开心！','再来一次！','玩得好累但是超快乐 ✨']));},
+  bath:()=>{add('clean',28);add('mood',6);const ev=gain(3);say(ev||rnd(['洗得香喷喷的～','泡泡好舒服 🫧','干净啦！']));},
+  sleep:()=>{add('energy',30);add('food',-4);add('mood',3);const ev=gain(2);say(ev||rnd(['zzz…睡得好香','做个好梦～','充电完成 ⚡']));},
+  train:()=>{add('food',-6);add('energy',-8);add('clean',-5);const ev=gain(12);say(ev||rnd(['学会新技能啦！','好聪明！','训练好认真 📖']));},
+};
+document.querySelectorAll('.actions button').forEach(b=>{
+  b.onclick=()=>{ACT[b.dataset.a]();render();};
+});
+const IDLE=['开心地哼着歌～','看看窗外的风景','想要你陪陪我','今天也要元气满满！'];
+let idleT=0;
+setInterval(()=>{
+  s.food=Math.max(0,s.food-2);
+  s.mood=Math.max(0,s.mood-1);
+  s.energy=Math.max(0,s.energy-1);
+  s.clean=Math.max(0,s.clean-1);
+  if(s.food===0)s.mood=Math.max(0,s.mood-3); // 饿过头会不开心
+  const [cf,cl]=cond();
+  if(SEVERE.includes(cf))say(cf==='😴'?'我睡着了…':'（'+cl+'…）');
+  else if(++idleT>=2){idleT=0;say(rnd(IDLE));}
+  render();
+},5000);
+render();
+say('你好呀～');
+})();
+</script>
+</body>
+</html>

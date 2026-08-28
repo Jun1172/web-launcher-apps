@@ -1,1 +1,314 @@
-<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>⌨️ 按键测试</title><style>body{margin:0;background:#052e16;color:#dcfce7;font:16px system-ui;text-align:center}main{max-width:650px;margin:8vh auto;padding:20px}.target{font-size:clamp(42px,12vw,88px);color:#4ade80;font-weight:800;margin:30px}.key{display:inline-flex;padding:14px 20px;margin:5px;border:1px solid #166534;border-radius:8px;background:#14532d}.hit{background:#22c55e;color:#052e16}button{padding:10px 18px;border:0;border-radius:8px;background:#16a34a;color:white}</style><main><h1>⌨️ 按键反应测试器</h1><p>请按下指定按键，测量响应时间</p><div class="target" id="target">准备</div><div id="keys"></div><p id="stats">正确 0 · 平均 -- ms</p><button onclick="newTest()">开始测试</button></main><script>const keys=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter',' '];let wanted,start,correct=0,total=0,sum=0;function label(k){return k===' '?'SPACE':k.replace('Arrow','').toUpperCase()}function newTest(){wanted=keys[Math.random()*keys.length|0];target.textContent=label(wanted);start=performance.now()}addEventListener('keydown',e=>{if(!wanted)return;if(e.key===wanted){let ms=Math.round(performance.now()-start);correct++;total++;sum+=ms;stats.textContent='正确 '+correct+' · 平均 '+Math.round(sum/total)+' ms';target.textContent='✓ '+ms+' ms';setTimeout(newTest,500)}else{target.textContent='✕ 应按 '+label(wanted);total++;setTimeout(newTest,700)}});keysEl=document.querySelector('#keys');keys.forEach(k=>keysEl.innerHTML+=`<span class="key">${label(k)}</span>`)</script>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>⌨️ 按键反应测试</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; color: #c7d6ff;
+    font: 15px/1.5 "Segoe UI", system-ui, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -10%, #12204a 0%, #0a1128 45%, #060a1a 100%);
+    display: flex; justify-content: center; padding: 4vh 16px;
+  }
+  .wrap { width: 100%; max-width: 520px; }
+  header { text-align: center; margin-bottom: 18px; }
+  header h1 {
+    margin: 0; font-size: 26px; letter-spacing: 2px;
+    color: #8fe3ff; text-shadow: 0 0 18px rgba(56,189,248,.6);
+  }
+  header p { margin: 6px 0 0; color: #7d8db3; font-size: 13px; }
+
+  .panel {
+    background: rgba(20,32,66,.55); border: 1px solid rgba(90,130,255,.25);
+    border-radius: 18px; padding: 20px; box-shadow: 0 20px 50px rgba(0,0,0,.5);
+    backdrop-filter: blur(8px);
+  }
+
+  /* 目标显示区 */
+  .stage {
+    position: relative; height: 150px; border-radius: 14px;
+    background: rgba(8,14,34,.7);
+    border: 1px solid rgba(90,130,255,.2);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; margin-bottom: 18px;
+  }
+  .stage::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(56,189,248,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56,189,248,.05) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .target-cap {
+    position: relative; z-index: 2; text-align: center;
+    min-width: 150px; padding: 20px 28px;
+    background: linear-gradient(180deg,#1e2c5c,#131d40);
+    border: 2px solid #3f66d6; border-radius: 14px;
+    box-shadow: 0 0 0 0 rgba(88,140,255,0), 0 10px 26px rgba(0,0,0,.5);
+    transition: box-shadow .15s, border-color .15s, transform .15s;
+  }
+  .target-cap .cap-key { font-size: 44px; font-weight: 700; color: #dbe7ff; }
+  .target-cap .cap-hint { font-size: 13px; color: #7d8db3; margin-top: 4px; }
+  .target-cap.lit {
+    border-color: #38e0ff;
+    box-shadow: 0 0 24px rgba(56,224,255,.55), 0 0 60px rgba(56,224,255,.25);
+    transform: scale(1.04);
+  }
+  .target-cap.ok {
+    border-color: #34e08a;
+    box-shadow: 0 0 26px rgba(52,224,138,.6), 0 0 60px rgba(52,224,138,.25);
+  }
+  .target-cap.bad {
+    border-color: #ff5c7a;
+    box-shadow: 0 0 26px rgba(255,92,122,.6), 0 0 60px rgba(255,92,122,.25);
+    animation: shake .35s;
+  }
+  .target-cap .cap-extra { font-size: 15px; color: #8fe3ff; margin-top: 6px; min-height: 20px; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)}
+  }
+
+  .countdown {
+    position: absolute; z-index: 3; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(6,10,26,.72); font-size: 90px; font-weight: 800;
+    color: #38e0ff; text-shadow: 0 0 30px rgba(56,224,255,.7);
+    letter-spacing: 4px;
+  }
+  .countdown small { font-size: 18px; color: #7d8db3; position: absolute; top: 16px; }
+  .countdown.hidden { display: none; }
+
+  /* 键盘区 */
+  .kbd { display: grid; gap: 8px; justify-content: center; margin-bottom: 16px; }
+  .kbd-row { display: flex; gap: 8px; justify-content: center; }
+  .kcap {
+    min-width: 58px; height: 52px; padding: 6px 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; font-weight: 600; color: #aebcdd;
+    background: linear-gradient(180deg,#1b2748,#121c38);
+    border: 1px solid #2c3f6e; border-bottom-width: 4px; border-radius: 9px;
+    cursor: default; user-select: none; transition: all .12s;
+  }
+  .kcap.wide { min-width: 120px; }
+  .kcap.space { min-width: 220px; }
+  .kcap.target {
+    color: #fff; border-color: #38e0ff; background: linear-gradient(180deg,#123a52,#0c2334);
+    box-shadow: 0 0 16px rgba(56,224,255,.5); transform: translateY(-2px);
+  }
+  .kcap.hit { border-color: #34e08a; color: #34e08a; box-shadow: 0 0 12px rgba(52,224,138,.4); }
+  .kcap.miss { border-color: #ff5c7a; color: #ff5c7a; box-shadow: 0 0 12px rgba(255,92,122,.4); }
+
+  /* 统计 */
+  .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 16px; }
+  .stat {
+    background: rgba(12,20,44,.6); border: 1px solid rgba(90,130,255,.18);
+    border-radius: 10px; padding: 8px 6px; text-align: center;
+  }
+  .stat b { display: block; font-size: 20px; color: #8fe3ff; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 11px; color: #7d8db3; }
+  .stat.good b { color: #34e08a; }
+  .stat.bad b { color: #ff5c7a; }
+  .stats.full { grid-template-columns: repeat(5,1fr); }
+
+  .actions { display: flex; gap: 10px; justify-content: center; }
+  button {
+    padding: 11px 26px; border: 0; border-radius: 10px; cursor: pointer;
+    font-size: 15px; font-weight: 600; color: #04101f;
+    background: linear-gradient(180deg,#38e0ff,#0ea5e9);
+    box-shadow: 0 4px 16px rgba(56,224,255,.3);
+    transition: filter .12s, transform .12s;
+  }
+  button:hover { filter: brightness(1.1); }
+  button:active { transform: scale(.97); }
+  button.ghost {
+    background: transparent; color: #7d8db3;
+    border: 1px solid #2c3f6e; box-shadow: none;
+  }
+  .tip { text-align: center; color: #5d6f97; font-size: 12px; margin-top: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>⌨️ 按键反应测试</h1>
+    <p>根据提示按下目标键，测量你的反应速度</p>
+  </header>
+
+  <div class="panel">
+    <div class="stage" id="stage">
+      <div class="target-cap" id="targetCap">
+        <div class="cap-key" id="capKey">准备</div>
+        <div class="cap-hint" id="capHint">点击「开始测试」</div>
+        <div class="cap-extra" id="capExtra"></div>
+      </div>
+      <div class="countdown hidden" id="cd"><small>倒计时</small><span id="cdNum">3</span></div>
+    </div>
+
+    <div class="kbd" id="kbd"></div>
+
+    <div class="stats" id="stats">
+      <div class="stat"><b id="sCorr">0</b><span>正确</span></div>
+      <div class="stat"><b id="sTotal">0</b><span>总数</span></div>
+      <div class="stat"><b id="sAcc">--%</b><span>正确率</span></div>
+    </div>
+
+    <div class="actions">
+      <button id="startBtn">开始测试</button>
+      <button class="ghost" id="resetBtn">重置</button>
+    </div>
+    <div class="tip">方向键 / Enter / 空格 · 按任意键即可作答</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const KEYS = [
+    { key: 'ArrowUp',    label: '▲', cls: 'up' },
+    { key: 'ArrowLeft',  label: '◀', cls: 'left' },
+    { key: 'ArrowDown',  label: '▼', cls: 'down' },
+    { key: 'ArrowRight', label: '▶', cls: 'right' },
+    { key: 'Enter',      label: 'ENTER', cls: 'wide' },
+    { key: ' ',          label: 'SPACE', cls: 'space' }
+  ];
+  const state = { target: null, start: 0, correct: 0, total: 0, times: [], mode: 'idle', timer: null, cd: 0 };
+  const $ = id => document.getElementById(id);
+  const stage = $('stage'), cap = $('targetCap'), capKey = $('capKey'), capHint = $('capHint'), capExtra = $('capExtra');
+  const cdBox = $('cd'), cdNum = $('cdNum');
+
+  // 渲染键盘
+  const kbd = $('kbd');
+  const rows = [[KEYS[0]], [KEYS[1], KEYS[2], KEYS[3]], [KEYS[4]], [KEYS[5]]];
+  rows.forEach(row => {
+    const r = document.createElement('div');
+    r.className = 'kbd-row';
+    row.forEach(k => {
+      const b = document.createElement('div');
+      b.className = 'kcap ' + k.cls;
+      b.textContent = k.label;
+      b.dataset.key = k.key;
+      r.append(b);
+    });
+    kbd.append(r);
+  });
+
+  function keyLabel(k) { return KEYS.find(x => x.key === k)?.label || k; }
+
+  function updateStats() {
+    const n = state.total, c = state.correct;
+    $('sCorr').textContent = c;
+    $('sTotal').textContent = n;
+    $('sAcc').textContent = n ? Math.round(c / n * 100) + '%' : '--%';
+    $('sAcc').style.color = n ? (c / n >= 0.8 ? '#34e08a' : '#ff5c7a') : '';
+  }
+
+  function showStat(id, text) { document.getElementById(id).textContent = text; }
+
+  // 刷新键盘高亮：目标键发光
+  function renderTarget() {
+    document.querySelectorAll('.kcap').forEach(b => {
+      const cls = KEYS.find(k => k.key === b.dataset.key)?.cls || '';
+      b.className = 'kcap ' + cls;
+      if (b.dataset.key === state.target) b.classList.add('target');
+    });
+  }
+
+  function renderCap(cls, keyText, hintText, extraText) {
+    cap.className = 'target-cap' + (cls ? ' ' + cls : '');
+    capKey.textContent = keyText;
+    capHint.textContent = hintText;
+    capExtra.textContent = extraText || '';
+  }
+
+  function showCd(n) {
+    cdNum.textContent = n;
+    cdBox.classList.remove('hidden');
+  }
+  function hideCd() { cdBox.classList.add('hidden'); }
+
+  function clearTimer() { if (state.timer) clearTimeout(state.timer); state.timer = null; }
+
+  // 开始一局
+  function nextRound() {
+    state.target = KEYS[Math.random() * KEYS.length | 0].key;
+    state.mode = 'countdown';
+    state.cd = 3;
+    renderCap('', keyLabel(state.target), '倒计时后开始', '');
+    renderTarget();
+    showCd(3);
+    tickCd();
+  }
+  function tickCd() {
+    clearTimer();
+    if (state.cd <= 0) {
+      hideCd();
+      state.mode = 'active';
+      state.start = performance.now();
+      renderCap('lit', keyLabel(state.target), '按这个键！', '');
+      renderTarget();
+      return;
+    }
+    showCd(state.cd);
+    state.timer = setTimeout(() => { state.cd--; tickCd(); }, 700);
+  }
+
+  function finishRound(ok, ms) {
+    clearTimer();
+    state.mode = 'flash';
+    if (ok) {
+      renderCap('ok', '✓ ' + ms + ' ms', '正确！', '');
+    } else {
+      renderCap('bad', '✕', '应按 ' + keyLabel(state.target), '');
+    }
+    state.target = null;
+    renderTarget();
+    state.timer = setTimeout(nextRound, ok ? 500 : 800);
+  }
+
+  function startTest() {
+    state.correct = 0; state.total = 0; state.times = [];
+    updateStats();
+    nextRound();
+  }
+  function reset() {
+    clearTimer();
+    state.mode = 'idle'; state.target = null;
+    renderCap('', '准备', '点击「开始测试」', '');
+    renderTarget();
+  }
+
+  // 键盘输入
+  addEventListener('keydown', e => {
+    if (e.repeat) return;
+    if (state.mode === 'active' && e.key === state.target) {
+      const ms = Math.round(performance.now() - state.start);
+      state.correct++; state.total++; state.times.push(ms);
+      const avg = Math.round(state.times.reduce((a, b) => a + b, 0) / state.times.length);
+      const fast = Math.min(...state.times);
+      showStat('sCorr', state.correct);
+      showStat('sTotal', state.total);
+      showStat('sAcc', Math.round(state.correct / state.total * 100) + '%');
+      showStat('sAvg', avg + ' ms');
+      showStat('sFast', fast + ' ms');
+      finishRound(true, ms);
+    } else if (state.mode === 'active') {
+      state.total++;
+      showStat('sTotal', state.total);
+      showStat('sAcc', Math.round(state.correct / state.total * 100) + '%');
+      finishRound(false, 0);
+    }
+  });
+
+  $('startBtn').addEventListener('click', startTest);
+  $('resetBtn').addEventListener('click', reset);
+
+  // 补充分数行：平均 / 最快
+  const s = $('stats');
+  s.insertAdjacentHTML('beforeend', '<div class="stat"><b id="sAvg">--</b><span>平均</span></div><div class="stat"><b id="sFast">--</b><span>最快</span></div>');
+  s.classList.add('full');
+  updateStats();
+})();
+</script>
+</body>
+</html>

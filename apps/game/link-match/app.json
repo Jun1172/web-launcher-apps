@@ -1,0 +1,12 @@
+{
+  "id": "link-match",
+  "name": "连连看",
+  "icon": "🀄",
+  "color": "#38e0ff",
+  "version": "1.0.0",
+  "changelog": "新增连连看：8x10 图案盘，曼哈顿路径折角不超过 2 即可消除，含计分/计时/连击/提示/无解洗牌。",
+  "port": 8170,
+  "cmd": ["apps/game/link-match/app.py"],
+  "dock": false,
+  "group": "game"
+}
