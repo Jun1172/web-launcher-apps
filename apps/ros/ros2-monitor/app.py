@@ -144,4 +144,4 @@ class H(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     print(f"[ROS2 Monitor] 启动成功，监听端口: {PORT}")
     print("提示: 请确保已 source /opt/ros/humble/setup.bash")
-    ThreadingHTTPServer(("127.0.0.1", PORT), H).serve_forever()
+    ThreadingHTTPServer((os.environ.get("APP_HOST", "127.0.0.1"), PORT), H).serve_forever()

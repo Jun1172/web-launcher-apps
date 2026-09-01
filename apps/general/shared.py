@@ -26,4 +26,4 @@ def serve_page(page_path):
         def log_message(self, *_):
             pass
 
-    ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
+    ThreadingHTTPServer((os.environ.get("APP_HOST", "127.0.0.1"), port), Handler).serve_forever()

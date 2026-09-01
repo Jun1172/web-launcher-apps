@@ -430,7 +430,7 @@ class H(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     print(f"[ROS2 Topic Inspector] 启动成功，监听端口: {PORT}")
-    server = ThreadingHTTPServer(("127.0.0.1", PORT), H)
+    server = ThreadingHTTPServer((os.environ.get("APP_HOST", "127.0.0.1"), PORT), H)
     try:
         server.serve_forever()
     finally:

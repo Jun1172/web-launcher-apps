@@ -13,7 +13,7 @@ importlib.reload(app)
 from http.server import ThreadingHTTPServer
 
 PORT = 18205
-srv = ThreadingHTTPServer(("127.0.0.1", PORT), app.H)
+srv = ThreadingHTTPServer((os.environ.get("APP_HOST", "127.0.0.1"), PORT), app.H)
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 
 def call(path):
