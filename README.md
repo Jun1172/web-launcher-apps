@@ -118,14 +118,18 @@ ROS2 应用需要在已加载 ROS2 环境的终端中运行。`cpp-hello` 等原
 }
 ```
 
+## 🧰 打开统一工具箱
+
+本仓库根目录有一个 **`toolbox.bat`**，双击即可打开「统一工具箱」桌面窗口——它同时管理 web-launcher 与本仓库的所有开发 / 发布 / 重建脚本（运行、打包、发布、重建、清理），带中文说明、点一下就能跑。
+
+> 工具箱本体只有一个，放在 web-launcher 仓库（`web-launcher/tools/toolbox.py`）；本仓库的 `toolbox.bat` 只是便捷入口。需保证两个仓库在同一目录下（`exe\web-launcher` 与 `exe\web-launcher-apps` 同级）。
+
 ## 🔧 本仓库的重建脚本
 
 本仓库作为独立项目，自带产物重建脚本（与 web-launcher 互不越界）：
 
 - `tools/make_wheels.py`：扫描**本仓库**各 `app.json` 的 `deps`，下载依赖 wheels 到本仓库 `wheels/<平台>/`。Python 版本号自动探测同级 `web-launcher/runtime`（找不到时回退 3.11）。
 - `tools/bootstrap.bat`：一键重建本仓库 wheels（runtime 属于 web-launcher，请到它那里重建）。
-
-> 统一入口：两个仓库的所有脚本（含本仓库）都可在 web-launcher 的 **`toolbox.py` 工具箱窗口**里一键运行，详见 web-launcher README 的「统一工具箱」一节。
 
 ## 🔧 开发提示
 
