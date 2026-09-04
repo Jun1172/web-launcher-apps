@@ -114,6 +114,15 @@ ROS2 应用需要在已加载 ROS2 环境的终端中运行。`cpp-hello` 等原
 }
 ```
 
+## 🔧 本仓库的重建脚本
+
+本仓库作为独立项目，自带产物重建脚本（与 web-launcher 互不越界）：
+
+- `make_wheels.py`：扫描**本仓库**各 `app.json` 的 `deps`，下载依赖 wheels 到本仓库 `wheels/<平台>/`。Python 版本号自动探测同级 `web-launcher/runtime`（找不到时回退 3.11）。
+- `bootstrap.bat`：一键重建本仓库 wheels（runtime 属于 web-launcher，请到它那里重建）。
+
+> 统一入口：两个仓库的所有脚本（含本仓库）都可在 web-launcher 的 **`toolbox.py` 工具箱窗口**里一键运行，详见 web-launcher README 的「统一工具箱」一节。
+
 ## 🔧 开发提示
 
 - 应用启动、端口探测、安装/卸载、版本回退和 `app.json` 字段行为见 [web-launcher README](https://github.com/Jun1172/web-launcher#-appjson-schema)。
