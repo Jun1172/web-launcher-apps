@@ -27,11 +27,13 @@
 web-launcher-apps/
 ├── README.md                # 本文档
 ├── config.json              # 仓库配置（host/port/repo/ports/system_apps）
-├── tools/                    # 开发/维护工具（全部收进 tools/，根目录保持干净）
+├── tools/                    # 开发/维护工具（全部收进 tools/，纯 Python 跨平台）
+│   ├── toolbox.py            # 工具箱本体（python tools/toolbox.py 打开）
+│   ├── tools.json            # 工具箱清单
 │   ├── publish.py            # 发布工具（与 web-launcher/tools/publish.py 同步）
 │   ├── make_wheels.py        # 重建本仓库 wheels
-│   ├── bootstrap.bat         # 一键重建本仓库 wheels
-│   └── kill.bat              # 清理 python 进程
+│   ├── bootstrap.py          # 一键重建本仓库 wheels
+│   └── kill.py               # 清理 python 进程（跨平台）
 └── apps/
     ├── README.md            # 应用开发指南（与 web-launcher 同步）
     ├── game/                # 小游戏（11 个）
@@ -118,18 +120,18 @@ ROS2 应用需要在已加载 ROS2 环境的终端中运行。`cpp-hello` 等原
 }
 ```
 
-## 🧰 打开统一工具箱
+## 🧰 工具箱（toolbox）
 
-本仓库根目录有一个 **`toolbox.bat`**，双击即可打开「统一工具箱」桌面窗口——它同时管理 web-launcher 与本仓库的所有开发 / 发布 / 重建脚本（运行、打包、发布、重建、清理），带中文说明、点一下就能跑。
+本仓库自带工具箱：**`python tools/toolbox.py`** 即可打开本仓库的工具箱窗口（优先桌面窗口，无 GUI 自动转浏览器）——列出并管理本仓库的开发 / 发布 / 重建脚本（发布、重建 wheels、清理进程），带中文说明、点一下就能跑。全部脚本为纯 Python，Windows/Linux/macOS 均可用。
 
-> 工具箱本体只有一个，放在 web-launcher 仓库（`web-launcher/tools/toolbox.py`）；本仓库的 `toolbox.bat` 只是便捷入口。需保证两个仓库在同一目录下（`exe\web-launcher` 与 `exe\web-launcher-apps` 同级）。
+> **每个仓库各带一个工具箱，只管自己。** 本仓库的工具箱本体在 `web-launcher-apps/tools/toolbox.py`（清单在 `tools/tools.json`），只列本仓库的脚本；web-launcher 有自己独立的工具箱，两个仓库互不交叉管理。
 
 ## 🔧 本仓库的重建脚本
 
 本仓库作为独立项目，自带产物重建脚本（与 web-launcher 互不越界）：
 
 - `tools/make_wheels.py`：扫描**本仓库**各 `app.json` 的 `deps`，下载依赖 wheels 到本仓库 `wheels/<平台>/`。Python 版本号自动探测同级 `web-launcher/runtime`（找不到时回退 3.11）。
-- `tools/bootstrap.bat`：一键重建本仓库 wheels（runtime 属于 web-launcher，请到它那里重建）。
+- `tools/bootstrap.py`：一键重建本仓库 wheels（runtime 属于 web-launcher，请到它那里重建）。跨平台：`python tools/bootstrap.py`。
 
 ## 🔧 开发提示
 

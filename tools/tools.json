@@ -1,0 +1,57 @@
+{
+  "title": "WebLauncher-Apps 工具箱",
+  "subtitle": "本仓库的开发 / 发布脚本统一管理",
+  "categories": [
+    { "id": "publish", "name": "发布",   "icon": "🚀" },
+    { "id": "rebuild", "name": "重建产物", "icon": "🔧" },
+    { "id": "clean",   "name": "清理",   "icon": "🧹" }
+  ],
+  "tools": [
+    {
+      "id": "publish.all",
+      "name": "发布全部应用",
+      "category": "publish",
+      "cmd": ["tools/publish.py", "--all"],
+      "desc": "打包并上传本仓库内所有应用（game / ros / etws / general 等）到 repo 服务器，并刷新 index.json。会连接远端服务器。",
+      "danger": false
+    },
+    {
+      "id": "publish.launcher",
+      "name": "发布 Launcher + 二进制",
+      "category": "publish",
+      "cmd": ["tools/publish.py", "--launcher", "--build"],
+      "desc": "打包并发布 launcher 主程序，且用 PyInstaller 编译出二进制 exe 一并上传（需本机装 PyInstaller）。建议填写更新说明。",
+      "args": [
+        { "flag": "--changelog", "placeholder": "本次更新说明", "optional": true }
+      ],
+      "danger": false
+    },
+    {
+      "id": "bootstrap",
+      "name": "一键重建 wheels",
+      "category": "rebuild",
+      "cmd": ["tools/bootstrap.py"],
+      "desc": "运行 make_wheels.py，一键重建本仓库 wheels/。误删产物目录后用它恢复。需联网。（runtime 属于 web-launcher）",
+      "danger": false
+    },
+    {
+      "id": "make.wheels",
+      "name": "重建 wheels（本仓库）",
+      "category": "rebuild",
+      "cmd": ["tools/make_wheels.py"],
+      "desc": "扫描本仓库各 app.json 的 deps，下载依赖 wheels 到本仓库 wheels/win-x64/。误删后用来恢复。需联网 + pip。",
+      "args": [
+        { "flag": "--platform", "placeholder": "win-x64 / linux-x64 / linux-arm64", "optional": true }
+      ],
+      "danger": false
+    },
+    {
+      "id": "kill",
+      "name": "清理卡住的进程",
+      "category": "clean",
+      "cmd": ["tools/kill.py"],
+      "desc": "跨平台清理：结束卡住的 launcher/python 进程，释放被占端口（自动排除工具箱自身）。Windows/Linux/macOS 均可用。会杀掉其它 Python 程序，慎用。",
+      "danger": true
+    }
+  ]
+}
