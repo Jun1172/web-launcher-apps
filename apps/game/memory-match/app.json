@@ -5,8 +5,10 @@
   "color": "#f97316",
   "version": "1.0.0",
   "changelog": "方向键移动光标，确认键翻牌，记录步数。",
-  "port": 8165,
-  "cmd": ["apps/game/memory-match/app.py"],
+  "port": 8178,
+  "cmd": [
+    "apps/game/memory-match/app.py"
+  ],
   "dock": false,
   "group": "game"
 }

@@ -1,5 +1,7 @@
 # 🌐 网络诊断工具箱 (net-diag)
 
+![界面预览](images/screenshot.png)
+
 离线可用的本地网络诊断工具，深色科技风 UI，纯手绘 Canvas 折线图，无需任何 CDN。
 
 ## 功能

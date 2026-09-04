@@ -1,5 +1,7 @@
 #  ROS2 监控 (ros2-monitor)
 
+![界面预览](images/screenshot.png)
+
 实时监控 ROS2 系统的节点、话题、服务状态。
 
 ## 应用行为

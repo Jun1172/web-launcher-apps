@@ -1,5 +1,7 @@
 # 经典俄罗斯方块
 
+![界面预览](images/screenshot.png)
+
 纯前端 Canvas 霓虹俄罗斯方块，无外部依赖。
 
 - 完整 7 种方块（I / O / T / L / J / S / Z），各有专属霓虹色

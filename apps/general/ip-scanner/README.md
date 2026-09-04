@@ -1,4 +1,6 @@
 # 🌐 局域网扫描 (ip-scanner)
+
+![界面预览](images/screenshot.png)
 验证 Launcher 承载多线程并发网络扫描应用的能力。
 ## 应用行为
 使用多线程并发 Ping 扫描 C 类网段，并通过 `nbtstat` (Windows) 或 `host` (Linux) 解析存活 IP 的设备名称。

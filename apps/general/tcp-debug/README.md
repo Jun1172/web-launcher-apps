@@ -1,5 +1,7 @@
 # 🔌 TCP 调试助手（tcp-debug）
 
+![界面预览](images/screenshot.png)
+
 验证 Launcher 管理 TCP 长连接应用的能力，以及 TCP Server 多客户端并发处理。
 
 ## 应用行为
@@ -29,5 +31,5 @@
 5. 点击「断开」，切换为「TCP Client」，连接外部 TCP 服务器测试接收功能。
 
 ## 文件
-- `app.json` —— 应用清单（端口 8142）
+- `app.json` —— 应用清单（端口 8147）
 - `app.py` —— TCP 客户端/服务端逻辑 + 连接管理 + 前端 UI

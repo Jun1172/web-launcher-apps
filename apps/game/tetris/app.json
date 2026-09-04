@@ -5,8 +5,10 @@
   "color": "#ec4899",
   "version": "1.1.0",
   "changelog": "完整 7 种方块（I/O/T/L/J/S/Z）霓虹配色；幽灵落点与下一块预览；消行计分 + 每 10 行升级提速；硬降/暂停；最佳分本地记录。",
-  "port": 8163,
-  "cmd": ["apps/game/tetris/app.py"],
+  "port": 8176,
+  "cmd": [
+    "apps/game/tetris/app.py"
+  ],
   "dock": false,
   "group": "game"
 }

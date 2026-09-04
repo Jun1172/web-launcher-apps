@@ -1,5 +1,7 @@
 # 📡 话题查看器 (ros2-topic-inspector)
 
+![界面预览](images/screenshot.png)
+
 实时查看和监控 ROS2 话题消息内容。
 
 ## 应用行为

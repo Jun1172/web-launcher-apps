@@ -1,5 +1,7 @@
 # 📡 UDP 调试助手（udp-debug）
 
+![界面预览](images/screenshot.png)
+
 验证 Launcher 管理网络调试类应用的能力，以及 Python 多线程 Socket 与 HTTP 服务的共存。
 
 ## 应用行为
@@ -29,5 +31,5 @@
 5. 在「发送数据」区域输入目标 `127.0.0.1:9999` 和内容，点击发送，观察黄色的 `[TX]` 记录。
 
 ## 文件
-- `app.json` —— 应用清单（端口 8141）
+- `app.json` —— 应用清单（端口 8148）
 - `app.py` —— UDP 收发逻辑 + HTTP API + 前端 UI

@@ -5,8 +5,10 @@
   "color": "#38bdf8",
   "version": "1.1.0",
   "changelog": "全新霓虹深色界面；发光渐变蛇与脉动食物；最佳分本地记录；速度随分数提升；游戏结束浮层；空格暂停。",
-  "port": 8160,
-  "cmd": ["apps/game/snake/app.py"],
+  "port": 8173,
+  "cmd": [
+    "apps/game/snake/app.py"
+  ],
   "dock": false,
   "group": "game"
 }

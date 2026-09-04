@@ -1,5 +1,7 @@
 # LAN·TALK — 茶水间
 
+![界面预览](images/screenshot.png)
+
 > 一个基于 MQTT WebSocket 的轻量级局域网加密聊天室。  
 > 支持端到端加密、无日志、刷新即焚、私密群组与桌面通知。
 

@@ -127,6 +127,46 @@ python publish.py --group general
 
 ## 🔌 端口分配约定
 
+端口按分组分段：system `8100-8109`、etws `8110-8169`、user `8120-8139`、general `8140-8159`、game `8173-8184`、ros `8201-8209`。
+
+### 本仓库应用（web-launcher-apps）
+
+| 应用 | 端口 |
+|------|------|
+| notes（便签） | 8120 |
+| ip-scanner（局域网扫描） | 8141 |
+| json-tool（JSON 工具） | 8142 |
+| lan-talk（茶水间） | 8143 |
+| mqtt-debug（MQTT 调试） | 8144 |
+| ping-tool（Ping 工具） | 8145 |
+| port-scanner（端口扫描） | 8146 |
+| tcp-debug（TCP 调试） | 8147 |
+| udp-debug（UDP 调试） | 8148 |
+| net-diag（网络诊断） | 8153 |
+| proc-demo（后台进程 demo） | — |
+| file-demo（占位 stub demo） | — |
+| snake（贪吃蛇） | 8173 |
+| flappy-bird（像素鸟） | 8174 |
+| sokoban（推箱子） | 8175 |
+| tetris（俄罗斯方块） | 8176 |
+| breakout（打砖块） | 8177 |
+| memory-match（记忆翻牌） | 8178 |
+| key-tester（按键测试） | 8179 |
+| life（生命游戏） | 8180 |
+| desktop-pet（电子宠物） | 8181 |
+| link-match（连连看） | 8182 |
+| cyber-wood-fish（电子木鱼） | 8183 |
+| coin-flip（抛硬币） | 8184 |
+| ros2-monitor | 8201 |
+| ros2-topic-inspector | 8203 |
+| ros2-service | 8204 |
+| ros2-param | 8205 |
+| ros2-action | 8206 |
+| ros2-graph | 8207 |
+| ros2-type-studio | 8209 |
+
+### 运行时仓库应用（web-launcher）
+
 | 应用 | 端口 |
 |------|------|
 | store（应用商店） | 8100 |
@@ -134,16 +174,23 @@ python publish.py --group general
 | clock（番茄钟） | 8102 |
 | sysinfo（系统信息） | 8103 |
 | settings（设置） | 8104 |
-| hello（demo） | 8110 |
-| notes（demo） | 8112 |
-| weather（demo） | 8113 |
-| game2048（demo） | 8114 |
-| proc-demo（后台进程 demo） | — |
-| file-demo（占位 stub demo） | — |
-| system-monitor（监控 demo） | 8130 |
-| cpp-hello（C++ demo） | 8140 |
+| calculator（计算器） | 8140 |
+| md-viewer（说明书中心） | 8154 |
+| hello（demo） | 8122 |
+| weather（demo） | 8123 |
+| cpp-hello（C++ demo） | 8124 |
+| system-monitor（监控 demo） | 8125 |
+| log-viewer（日志查看） | 8151 |
+| cron-ui（定时任务） | 8152 |
+| nixie-clock（辉光管时钟） | 8168 |
+| game2048（demo） | 8121 |
+| ad-analysis（AD 数据解析） | 8116 |
+| mqtt-monitor（状态监测） | 8150 |
+| radar-viewer（雷达数据） | 8160 |
+| channel-analyse（通道分析） | 8165 |
+| iqcache-sync（IQ 缓存同步） | 8210 |
 
-新应用建议从 8150 开始往上分配，避免和现有应用冲突。
+新应用建议从各分组段的高位往下分配，避免和现有应用冲突。
 
 ### 监听地址约定（APP_HOST）
 

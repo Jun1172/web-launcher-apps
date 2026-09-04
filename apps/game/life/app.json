@@ -5,8 +5,10 @@
   "color": "#06b6d4",
   "version": "1.0.0",
   "changelog": "随机演化、暂停继续、点击绘制细胞。",
-  "port": 8167,
-  "cmd": ["apps/game/life/app.py"],
+  "port": 8180,
+  "cmd": [
+    "apps/game/life/app.py"
+  ],
   "dock": false,
   "group": "game"
 }

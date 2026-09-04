@@ -1,5 +1,7 @@
 # 动作教程
 
+![界面预览](images/screenshot.png)
+
 动作列表查询 + send_goal + 内置动作服务器（闭环测试）。
 
 - `app.py` — Web 界面与命令入口

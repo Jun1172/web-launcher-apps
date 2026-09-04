@@ -1,5 +1,7 @@
 # 🗒️ 便签（notes）
 
+![界面预览](images/screenshot.png)
+
 便签 demo，验证 `localStorage` 持久化场景。
 
 ## 功能

@@ -1,5 +1,7 @@
 # 🌐 MQTT 调试助手（mqtt-debug）
 
+![界面预览](images/screenshot.png)
+
 验证 Launcher 对依赖第三方 Python 库 (`paho-mqtt`) 应用的支持，以及 MQTT 协议订阅/发布流程。
 
 ## 应用行为
@@ -30,5 +32,5 @@
 6. 观察日志区域是否同时出现黄色的 `[TX]` 和绿色的 `[RX]` 记录。
 
 ## 文件
-- `app.json` —— 应用清单（端口 8143，包含 `PIP_REQUIRE` 提示）
+- `app.json` —— 应用清单（端口 8144，包含 `PIP_REQUIRE` 提示）
 - `app.py` —— MQTT 客户端逻辑 + 状态管理 + 前端 UI

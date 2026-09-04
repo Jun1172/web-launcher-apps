@@ -1,4 +1,6 @@
 # 🔌 端口扫描 (port-scanner)
+
+![界面预览](images/screenshot.png)
 验证 Launcher 承载需要调用系统命令的后端应用的能力。
 ## 应用行为
 调用系统 `netstat` (Windows) 或 `lsof` (Linux/Mac) 获取本机监听端口，并通过 `tasklist` 解析对应的进程名称。
