@@ -18,8 +18,8 @@
 | **是什么** | 业务应用源码仓库（apps/）+ 发布工具（publish.py）+ 配置（config.json） |
 | **不是什么** | 不含 launcher 框架（无 launcher.py / launcher/ 包）；运行需要先安装 web-launcher |
 | **运行方式** | 将本项目的应用目录软链 / 复制到 web-launcher 的 `apps/` 下，再启动 web-launcher |
-| **发布方式** | 本项目自带 `publish.py`，按 `app.json` 递归发现应用并将 zip 推送到远端仓库 |
-| **运行时发布** | launcher 自身的 OTA 包应在 web-launcher 项目中使用其 `publish.py --launcher` 发布 |
+| **发布方式** | 本项目自带 `tools/publish.py`，按 `app.json` 递归发现应用并将 zip 推送到远端仓库 |
+| **运行时发布** | launcher 自身的 OTA 包应在 web-launcher 项目中使用其 `tools/publish.py --launcher` 发布 |
 
 ## 📂 目录结构
 
@@ -27,7 +27,11 @@
 web-launcher-apps/
 ├── README.md                # 本文档
 ├── config.json              # 仓库配置（host/port/repo/ports/system_apps）
-├── publish.py                # 发布工具（与 web-launcher/publish.py 同步）
+├── tools/                    # 开发/维护工具（全部收进 tools/，根目录保持干净）
+│   ├── publish.py            # 发布工具（与 web-launcher/tools/publish.py 同步）
+│   ├── make_wheels.py        # 重建本仓库 wheels
+│   ├── bootstrap.bat         # 一键重建本仓库 wheels
+│   └── kill.bat              # 清理 python 进程
 └── apps/
     ├── README.md            # 应用开发指南（与 web-launcher 同步）
     ├── game/                # 小游戏（11 个）
@@ -78,19 +82,19 @@ Copy-Item -Recurse apps/general ../web-launcher/apps/
 
 ```bash
 # 列出所有可发布的应用
-python publish.py --list
+python tools/publish.py --list
 
 # 发布单个通用应用
-python publish.py apps/general/calculator
+python tools/publish.py apps/general/calculator
 
 # 发布整个 general 分组
-python publish.py --group general
+python tools/publish.py --group general
 
 # 发布所有 user demo
-python publish.py --user
+python tools/publish.py --user
 
 # 一键发布全部
-python publish.py --all
+python tools/publish.py --all
 ```
 
 ROS2 应用需要在已加载 ROS2 环境的终端中运行。`cpp-hello` 等原生应用需要先按应用目录中的说明完成本机编译，并针对目标平台分别生成产物。
@@ -118,8 +122,8 @@ ROS2 应用需要在已加载 ROS2 环境的终端中运行。`cpp-hello` 等原
 
 本仓库作为独立项目，自带产物重建脚本（与 web-launcher 互不越界）：
 
-- `make_wheels.py`：扫描**本仓库**各 `app.json` 的 `deps`，下载依赖 wheels 到本仓库 `wheels/<平台>/`。Python 版本号自动探测同级 `web-launcher/runtime`（找不到时回退 3.11）。
-- `bootstrap.bat`：一键重建本仓库 wheels（runtime 属于 web-launcher，请到它那里重建）。
+- `tools/make_wheels.py`：扫描**本仓库**各 `app.json` 的 `deps`，下载依赖 wheels 到本仓库 `wheels/<平台>/`。Python 版本号自动探测同级 `web-launcher/runtime`（找不到时回退 3.11）。
+- `tools/bootstrap.bat`：一键重建本仓库 wheels（runtime 属于 web-launcher，请到它那里重建）。
 
 > 统一入口：两个仓库的所有脚本（含本仓库）都可在 web-launcher 的 **`toolbox.py` 工具箱窗口**里一键运行，详见 web-launcher README 的「统一工具箱」一节。
 

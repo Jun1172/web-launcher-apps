@@ -11,10 +11,10 @@
 （web-launcher 仓库有自己独立的 make_wheels.py，两仓库各自重建、互不越界。）
 
 用法:
-    python make_wheels.py                  # 按当前平台下载
-    python make_wheels.py --platform win-x64
-    python make_wheels.py --platform linux-arm64
-    python make_wheels.py --deps paramiko requests   # 手动指定（跳过扫描）
+    python tools/make_wheels.py                  # 按当前平台下载（在仓库根目录运行）
+    python tools/make_wheels.py --platform win-x64
+    python tools/make_wheels.py --platform linux-arm64
+    python tools/make_wheels.py --deps paramiko requests   # 手动指定（跳过扫描）
 
 说明:
     下载的 wheel 必须与 web-launcher 内嵌 runtime 的 Python 版本、CPU 架构
@@ -28,8 +28,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-WHEELS = HERE / "wheels"
+# 本脚本位于 tools/ 目录下，仓库根目录为其上一级
+ROOT = Path(__file__).resolve().parent.parent
+WHEELS = ROOT / "wheels"
 
 # runtime 缺失时的回退版本（应与 web-launcher/make_runtime.py 的 PY_VER 保持一致）
 PY_VER = "3.11.9"
@@ -60,10 +61,10 @@ def detect_python_tag():
     优先用同级 web-launcher/runtime/win-x64/python.exe 的真实版本，
     确保 wheel 与 web-launcher 的 runtime 匹配；不存在时回退 PY_VER。
     """
-    # 本仓库与 web-launcher 通常是同级目录
+    # 本仓库与 web-launcher 通常是同级目录（ROOT 为 web-launcher-apps 根）
     candidates = [
-        HERE.parent / "web-launcher" / "runtime" / "win-x64" / "python.exe",
-        HERE / "runtime" / "win-x64" / "python.exe",
+        ROOT.parent / "web-launcher" / "runtime" / "win-x64" / "python.exe",
+        ROOT / "runtime" / "win-x64" / "python.exe",
     ]
     for rt in candidates:
         if rt.is_file():
@@ -86,7 +87,7 @@ def detect_python_tag():
 
 def collect_deps():
     """扫描 **本仓库** 所有 app.json，汇总 deps 字段（去重、保序）。"""
-    roots = [HERE / "apps"]
+    roots = [ROOT / "apps"]
 
     deps, sources = [], {}
     for root in roots:

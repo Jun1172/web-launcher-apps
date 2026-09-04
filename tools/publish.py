@@ -19,14 +19,21 @@ import sys
 import zipfile
 from pathlib import Path
 
-if Path(__file__).name == "publish.py" and Path(__file__).parent.name == "apps":
-    # publish.py 在 apps/ 目录下
-    BASE = Path(__file__).parent.parent.resolve()
+# 本脚本位于 tools/ 目录下，仓库根目录为其上一级（向上定位，兼容历史放法）。
+_here = Path(__file__).resolve().parent
+if _here.name == "tools":
+    BASE = _here.parent            # tools/ 的上一级 = 仓库根
+elif _here.name == "apps":
+    BASE = _here.parent            # 兼容历史：曾放在 apps/ 下
 else:
-    # publish.py 在根目录
-    BASE = Path(__file__).parent.resolve()
+    BASE = _here                   # 兼容历史：曾放在仓库根
 CONFIG_JSON = BASE / "config.json"
 APPS_DIR = BASE / "apps"
+
+# 让 `from apps.build_launcher import build`（--launcher --build）在仓库根可用：
+# 脚本在 tools/ 时，sys.path[0] 是 tools/，需手动把仓库根加进去。
+if str(BASE) not in sys.path:
+    sys.path.insert(0, str(BASE))
 
 def load_config():
     if CONFIG_JSON.exists():
