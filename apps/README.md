@@ -129,7 +129,7 @@ python tools/publish.py --group general
 
 端口按分组分段：system `8100-8109`、etws `8110-8169`、user `8120-8139`、general `8140-8159`、game `8173-8184`、ros `8201-8209`。
 
-### 本仓库应用（web-launcher-apps）
+### 本仓库应用端口
 
 | 应用 | 端口 |
 |------|------|
@@ -164,33 +164,6 @@ python tools/publish.py --group general
 | ros2-action | 8206 |
 | ros2-graph | 8207 |
 | ros2-type-studio | 8209 |
-
-### 运行时仓库应用（web-launcher）
-
-| 应用 | 端口 |
-|------|------|
-| store（应用商店） | 8100 |
-| todo（待办清单） | 8101 |
-| clock（番茄钟） | 8102 |
-| sysinfo（系统信息） | 8103 |
-| settings（设置） | 8104 |
-| calculator（计算器） | 8140 |
-| md-viewer（说明书中心） | 8154 |
-| hello（demo） | 8122 |
-| weather（demo） | 8123 |
-| cpp-hello（C++ demo） | 8124 |
-| system-monitor（监控 demo） | 8125 |
-| log-viewer（日志查看） | 8151 |
-| cron-ui（定时任务） | 8152 |
-| nixie-clock（辉光管时钟） | 8168 |
-| game2048（demo） | 8121 |
-| ad-analysis（AD 数据解析） | 8116 |
-| mqtt-monitor（状态监测） | 8150 |
-| radar-viewer（雷达数据） | 8160 |
-| channel-analyse（通道分析） | 8165 |
-| iqcache-sync（IQ 缓存同步） | 8210 |
-
-新应用建议从各分组段的高位往下分配，避免和现有应用冲突。
 
 ### 监听地址约定（APP_HOST）
 

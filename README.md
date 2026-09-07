@@ -1,25 +1,20 @@
 # 📦 Web Launcher Apps — 业务应用仓库
 
-一个**纯应用仓库**项目：包含游戏、通用工具、ROS2 工具和 demo 应用，通过 web-launcher 框架运行。本项目**不含** launcher 框架代码本身。
+一个**纯应用仓库**项目：包含游戏、通用工具、ROS2 工具和 demo 应用。本项目**不含** launcher 运行时代码本身。
 ![Logo](images/桌面.png)
 
-## 🔗 相关仓库
+## 🔗 代码托管
 
 - [GitHub：web-launcher-apps](https://github.com/Jun1172/web-launcher-apps)
-- [Gitee：web-launcher（运行时）](https://gitee.com/jun626/web-launcher)
-- [GitHub：web-launcher（运行时）](https://github.com/Jun1172/web-launcher)
-
-两个代码托管平台内容保持同步，选择访问速度更快的平台即可。运行时、应用协议和发布工具的说明以 [web-launcher README](https://github.com/Jun1172/web-launcher#readme) 为准。
 
 ## 📌 项目定位
 
 | 维度 | 说明 |
 |------|------|
 | **是什么** | 业务应用源码仓库（apps/）+ 发布工具（publish.py）+ 配置（config.json） |
-| **不是什么** | 不含 launcher 框架（无 launcher.py / launcher/ 包）；运行需要先安装 web-launcher |
-| **运行方式** | 将本项目的应用目录软链 / 复制到 web-launcher 的 `apps/` 下，再启动 web-launcher |
+| **不是什么** | 不含 launcher 运行时（无 launcher.py / launcher/ 包）；应用需配合符合 app.json 协议的运行时使用 |
+| **运行方式** | 将本项目的应用目录软链 / 复制到运行时的 `apps/` 下，再启动运行时 |
 | **发布方式** | 本项目自带 `tools/publish.py`，按 `app.json` 递归发现应用并将 zip 推送到远端仓库 |
-| **运行时发布** | launcher 自身的 OTA 包应在 web-launcher 项目中使用其 `tools/publish.py --launcher` 发布 |
 
 ## 📂 目录结构
 
@@ -30,12 +25,12 @@ web-launcher-apps/
 ├── tools/                    # 开发/维护工具（全部收进 tools/，纯 Python 跨平台）
 │   ├── toolbox.py            # 工具箱本体（python tools/toolbox.py 打开）
 │   ├── tools.json            # 工具箱清单
-│   ├── publish.py            # 发布工具（与 web-launcher/tools/publish.py 同步）
+│   ├── publish.py            # 发布工具
 │   ├── make_wheels.py        # 重建本仓库 wheels
 │   ├── bootstrap.py          # 一键重建本仓库 wheels
 │   └── kill.py               # 清理 python 进程（跨平台）
 └── apps/
-    ├── README.md            # 应用开发指南（与 web-launcher 同步）
+    ├── README.md            # 应用开发指南
     ├── game/                # 小游戏（11 个）
     ├── general/             # 通用工具（网络、文件、调试、日志等）
     ├── ros/                 # ROS2 工具（9 个）
@@ -57,27 +52,25 @@ web-launcher-apps/
 
 ## 🚀 快速开始
 
-### 方式 A：与 web-launcher 共置（推荐开发态）
+### 方式 A：软链到运行时（推荐开发态）
 
 ```bash
-# 1. 按需把本项目的应用分组软链到 web-launcher/apps/
+# 1. 按需把本项目的应用分组软链到运行时的 apps/ 下
 # Windows（管理员权限）：
-mklink /D c:\path\to\web-launcher\apps\general c:\path\to\web-launcher-apps\apps\general
+mklink /D <运行时目录>\apps\general <本仓库目录>\apps\general
 # Linux：
-ln -s /path/to/web-launcher-apps/apps/general /path/to/web-launcher/apps/general
+ln -s <本仓库目录>/apps/general <运行时目录>/apps/general
 
-# 2. 启动 web-launcher
-cd ../web-launcher
-python launcher.py
+# 2. 启动运行时
 ```
 
-`game`、`general`、`ros`、`user` 都可以按同样方式接入。不要直接用整个 `apps/` 覆盖 launcher 的 `apps/`，否则可能覆盖系统应用；同名 `id` 也应只保留一个版本。
+`game`、`general`、`ros`、`user` 都可以按同样方式接入。不要直接用整个 `apps/` 覆盖运行时的 `apps/`，否则可能覆盖系统应用；同名 `id` 也应只保留一个版本。
 
-### 方式 B：复制 apps/ 到 web-launcher
+### 方式 B：复制 apps/ 到运行时
 
 ```bash
 # 复制一个应用分组
-Copy-Item -Recurse apps/general ../web-launcher/apps/
+Copy-Item -Recurse apps/general <运行时目录>/apps/
 ```
 
 ## 📦 发布流程
@@ -103,7 +96,7 @@ ROS2 应用需要在已加载 ROS2 环境的终端中运行。`cpp-hello` 等原
 
 ## 📋 app.json Schema
 
-详见 [web-launcher README - app.json Schema](https://github.com/Jun1172/web-launcher#-appjson-schema) 与 [apps/README.md](apps/README.md)。
+详见 [apps/README.md](apps/README.md)。
 
 通用应用清单示例：
 
@@ -122,22 +115,17 @@ ROS2 应用需要在已加载 ROS2 环境的终端中运行。`cpp-hello` 等原
 
 ## 🧰 工具箱（toolbox）
 
-本仓库自带工具箱：**`python tools/toolbox.py`** 即可打开本仓库的工具箱窗口（优先桌面窗口，无 GUI 自动转浏览器）——列出并管理本仓库的开发 / 发布 / 重建脚本（发布、重建 wheels、清理进程），带中文说明、点一下就能跑。全部脚本为纯 Python，Windows/Linux/macOS 均可用。
-
-> **每个仓库各带一个工具箱，只管自己。** 本仓库的工具箱本体在 `web-launcher-apps/tools/toolbox.py`（清单在 `tools/tools.json`），只列本仓库的脚本；web-launcher 有自己独立的工具箱，两个仓库互不交叉管理。
+本仓库自带工具箱：**`python tools/toolbox.py`** 即可打开工具箱窗口（优先桌面窗口，无 GUI 自动转浏览器）——列出并管理本仓库的开发 / 发布 / 重建脚本（发布、重建 wheels、清理进程），带中文说明、点一下就能跑。全部脚本为纯 Python，Windows/Linux/macOS 均可用。
 
 ## 🔧 本仓库的重建脚本
 
-本仓库作为独立项目，自带产物重建脚本（与 web-launcher 互不越界）：
-
-- `tools/make_wheels.py`：扫描**本仓库**各 `app.json` 的 `deps`，下载依赖 wheels 到本仓库 `wheels/<平台>/`。Python 版本号自动探测同级 `web-launcher/runtime`（找不到时回退 3.11）。
-- `tools/bootstrap.py`：一键重建本仓库 wheels（runtime 属于 web-launcher，请到它那里重建）。跨平台：`python tools/bootstrap.py`。
+- `tools/make_wheels.py`：扫描**本仓库**各 `app.json` 的 `deps`，下载依赖 wheels 到本仓库 `wheels/<平台>/`。Python 版本号自动探测本仓库 `runtime/`（找不到时回退 3.11）。
+- `tools/bootstrap.py`：一键重建本仓库 wheels，跨平台：`python tools/bootstrap.py`。
 
 ## 🔧 开发提示
 
-- 应用启动、端口探测、安装/卸载、版本回退和 `app.json` 字段行为见 [web-launcher README](https://github.com/Jun1172/web-launcher#-appjson-schema)。
 - 应用目录中的 README 优先说明该应用的额外依赖和启动方式。
-- 两个仓库都保留部分 demo 是为了方便独立开发；接入 launcher 时应按需选择目录，避免同名应用同时存在。
+- 接入运行时应按需选择应用目录，避免同名应用同时存在。
 
 ## 🔧 部分应用演示
 ![Logo](images/电子宠物.png)

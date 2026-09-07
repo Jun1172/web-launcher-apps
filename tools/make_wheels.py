@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
-"""下载 **本仓库（web-launcher-apps）** 应用依赖 wheels，供离线部署使用。
+"""下载 **本仓库** 应用依赖 wheels，供离线部署使用。
 
-产出 wheels/<平台标签>/ 目录。web-launcher 的 deps_installer 在安装应用时会
-同时查找本仓库同级目录下的 wheels（见 launcher/deps_installer.py 的兄弟仓库
-回退），因此把 apps 仓库的 wheels 生成在它自己目录下即可，无需跨仓库拷贝。
+产出 wheels/<平台标签>/ 目录，安装应用时由运行环境从该目录离线安装。
 
 依赖清单**不写死在脚本里**，而是自动扫描 **本仓库** 所有 app.json 的 deps 字段：
-    web-launcher-apps/apps/*/*/app.json
-
-（web-launcher 仓库有自己独立的 make_wheels.py，两仓库各自重建、互不越界。）
+    apps/*/*/app.json
 
 用法:
     python tools/make_wheels.py                  # 按当前平台下载（在仓库根目录运行）
@@ -17,9 +13,9 @@
     python tools/make_wheels.py --deps paramiko requests   # 手动指定（跳过扫描）
 
 说明:
-    下载的 wheel 必须与 web-launcher 内嵌 runtime 的 Python 版本、CPU 架构
-    匹配，因此脚本会优先探测同级 web-launcher/runtime/win-x64/python.exe 的
-    真实版本（默认 3.11）；runtime 不存在时回退到 PY_VER 常量。
+    下载的 wheel 必须与目标运行环境的 Python 版本、CPU 架构匹配，
+    因此脚本会优先探测本仓库 runtime/win-x64/python.exe 的真实版本
+    （默认 3.11）；runtime 不存在时回退到 PY_VER 常量。
 """
 import argparse
 import json
@@ -32,7 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 WHEELS = ROOT / "wheels"
 
-# runtime 缺失时的回退版本（应与 web-launcher/make_runtime.py 的 PY_VER 保持一致）
+# runtime 缺失时的回退版本（应与本仓库 runtime 的 Python 版本保持一致）
 PY_VER = "3.11.9"
 
 # 平台标签 → pip 的 --platform 参数
@@ -45,7 +41,7 @@ PLATFORMS = {
 
 
 def detect_platform():
-    """按当前机器推断平台标签（与 launcher/deps_installer.py 保持一致）。"""
+    """按当前机器推断平台标签（win-x64 / linux-x64 / linux-arm64）。"""
     if os.name == "nt":
         return "win-x64"
     import platform
@@ -56,30 +52,23 @@ def detect_platform():
 
 
 def detect_python_tag():
-    """探测内嵌 runtime 的 Python 版本标签（如 311）。
+    """探测本仓库内嵌 runtime 的 Python 版本标签（如 311）。
 
-    优先用同级 web-launcher/runtime/win-x64/python.exe 的真实版本，
-    确保 wheel 与 web-launcher 的 runtime 匹配；不存在时回退 PY_VER。
+    只用本仓库 runtime/win-x64/python.exe 的真实版本；不存在时回退 PY_VER。
     """
-    # 本仓库与 web-launcher 通常是同级目录（ROOT 为 web-launcher-apps 根）
-    candidates = [
-        ROOT.parent / "web-launcher" / "runtime" / "win-x64" / "python.exe",
-        ROOT / "runtime" / "win-x64" / "python.exe",
-    ]
-    for rt in candidates:
-        if rt.is_file():
-            try:
-                out = subprocess.run(
-                    [str(rt), "-c", "import sys;print('%d%d' % sys.version_info[:2])"],
-                    capture_output=True, text=True, timeout=30,
-                )
-                tag = (out.stdout or "").strip()
-                if tag.isdigit():
-                    print("[信息] 检测到 web-launcher runtime: Python %s.%s"
-                          % (tag[0], tag[1:]))
-                    return tag
-            except Exception:
-                pass
+    rt = ROOT / "runtime" / "win-x64" / "python.exe"
+    if rt.is_file():
+        try:
+            out = subprocess.run(
+                [str(rt), "-c", "import sys;print('%d%d' % sys.version_info[:2])"],
+                capture_output=True, text=True, timeout=30,
+            )
+            tag = (out.stdout or "").strip()
+            if tag.isdigit():
+                print("[信息] 检测到内嵌 runtime: Python %s.%s" % (tag[0], tag[1:]))
+                return tag
+        except Exception:
+            pass
     tag = "".join(PY_VER.split(".")[:2])
     print("[信息] 未找到 runtime，回退到 PY_VER=%s (标签 %s)" % (PY_VER, tag))
     return tag
