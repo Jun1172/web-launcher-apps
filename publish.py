@@ -3,8 +3,6 @@
 python publish.py                     # 列出所有可发布的应用
 python publish.py <app_dir>           # 发布单个（例: apps/user/hello）
 python publish.py --all               # 一键发布所有应用
-python publish.py --system            # 一键发布所有系统应用
-python publish.py --user              # 一键发布所有用户应用
 python publish.py --group admin       # 一键发布指定分组的应用
 python publish.py --list              # 仅列出，不发布
 python publish.py --launcher          # 打包并发布 launcher 主程序更新
@@ -29,6 +27,26 @@ else:
     BASE = _here                   # 兼容历史：曾放在仓库根
 CONFIG_JSON = BASE / "config.json"
 APPS_DIR = BASE / "apps"
+
+# 打包排除：以下顶层目录/文件名永不入包（编译产物、运行数据、依赖缓存等）。
+# 应用还可在 app.json 里加 "exclude": ["cpp", "wrapper"] 追加自定义排除
+#（相对应用目录的顶层目录/文件名，任一上级目录命中即排除整个子树）。
+ALWAYS_EXCLUDE = {"build", "data", "site", ".git", "__pycache__", ".venv"}
+
+
+def app_excludes(meta):
+    """合并默认排除与 app.json 的 exclude 字段。"""
+    ex = set(ALWAYS_EXCLUDE)
+    for e in (meta or {}).get("exclude") or []:
+        e = str(e).strip().strip("/").replace("\\", "/")
+        if e:
+            ex.add(e)
+    return ex
+
+
+def is_excluded(rel, ex):
+    """rel（相对应用目录的 Path）任一级目录或文件名命中排除集即排除。"""
+    return any(part in ex for part in rel.parts)
 
 # 让 `from apps.build_launcher import build`（--launcher --build）在仓库根可用：
 # 脚本在 tools/ 时，sys.path[0] 是 tools/，需手动把仓库根加进去。
@@ -197,10 +215,11 @@ def publish_one(app_dir, *, upload=True, index_override=None):
 
     zip_path = BASE / zip_name
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+        ex = app_excludes(meta)
         for f in app_dir.rglob("*"):
             if not f.is_file():
                 continue
-            if ".venv" in f.parts or f.suffix == ".pyc" or f.name == "__pycache__":
+            if is_excluded(f.relative_to(app_dir), ex) or f.suffix == ".pyc":
                 continue
             if f.name.endswith(".zip.tmp") or f.name == zip_name:
                 continue
@@ -270,8 +289,6 @@ def parse_args():
     g = parser.add_mutually_exclusive_group()
     g.add_argument("app_dir", nargs="?", help="要发布的单个应用路径")
     g.add_argument("--all", action="store_true", help="发布所有应用")
-    g.add_argument("--system", action="store_true", help="仅发布系统应用 (等同于 --group system)")
-    g.add_argument("--user", action="store_true", help="仅发布用户应用 (等同于 --group user)")
     g.add_argument("--group", type=str, help="仅发布指定分组的应用 (例: --group admin)")
     g.add_argument("--list", action="store_true", help="列出所有可发布的应用")
     g.add_argument("--launcher", action="store_true", help="打包并发布 launcher 主程序更新")
@@ -439,7 +456,7 @@ def main():
         sys.exit(0 if ok else 4)
 
     # 核心改动：支持 --group 参数
-    has_filter = any([args.app_dir, args.all, args.system, args.user, args.group, args.list])
+    has_filter = any([args.app_dir, args.all, args.group, args.list])
     if args.list or not has_filter:
         print("📋 可发布的应用清单:")
         print_apps_table(discover_apps("all"))
@@ -469,10 +486,6 @@ def main():
     # 核心改动：解析 kind
     if args.group:
         kind = args.group
-    elif args.system:
-        kind = "system"
-    elif args.user:
-        kind = "user"
     else:
         kind = "all"
         

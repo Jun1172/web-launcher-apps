@@ -14,7 +14,7 @@
 | **是什么** | 业务应用源码仓库（apps/）+ 发布工具（publish.py）+ 配置（config.json） |
 | **不是什么** | 不含 launcher 运行时（无 launcher.py / launcher/ 包）；应用需配合符合 app.json 协议的运行时使用 |
 | **运行方式** | 将本项目的应用目录软链 / 复制到运行时的 `apps/` 下，再启动运行时 |
-| **发布方式** | 本项目自带 `tools/publish.py`，按 `app.json` 递归发现应用并将 zip 推送到远端仓库 |
+| **发布方式** | 根目录 `publish.py` 手动运行，按 `app.json` 递归发现应用并将 zip 推送到远端仓库 |
 
 ## 📂 目录结构
 
@@ -22,10 +22,10 @@
 web-launcher-apps/
 ├── README.md                # 本文档
 ├── config.json              # 仓库配置（host/port/repo/ports/system_apps）
+├── publish.py               # 发布工具（根目录手动运行：python publish.py ...）
 ├── tools/                    # 开发/维护工具（全部收进 tools/，纯 Python 跨平台）
 │   ├── toolbox.py            # 工具箱本体（python tools/toolbox.py 打开）
 │   ├── tools.json            # 工具箱清单
-│   ├── publish.py            # 发布工具
 │   ├── make_wheels.py        # 重建本仓库 wheels
 │   ├── bootstrap.py          # 一键重建本仓库 wheels
 │   └── kill.py               # 清理 python 进程（跨平台）
@@ -77,19 +77,16 @@ Copy-Item -Recurse apps/general <运行时目录>/apps/
 
 ```bash
 # 列出所有可发布的应用
-python tools/publish.py --list
+python publish.py --list
 
 # 发布单个通用应用
-python tools/publish.py apps/general/calculator
+python publish.py apps/general/calculator
 
 # 发布整个 general 分组
-python tools/publish.py --group general
-
-# 发布所有 user demo
-python tools/publish.py --user
+python publish.py --group general
 
 # 一键发布全部
-python tools/publish.py --all
+python publish.py --all
 ```
 
 ROS2 应用需要在已加载 ROS2 环境的终端中运行。`cpp-hello` 等原生应用需要先按应用目录中的说明完成本机编译，并针对目标平台分别生成产物。
