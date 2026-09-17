@@ -5,10 +5,8 @@
   "color": "#e879f9",
   "version": "1.1.0",
   "changelog": "新增饱食/心情/精力/清洁四维属性与等级进化（🥚→🐣→🐱→🐈→🐆）；新增玩耍/洗澡/睡觉/训练动作、生病等状态机；深色玻璃质感 UI。",
-  "port": 8181,
-  "cmd": [
-    "apps/game/desktop-pet/app.py"
-  ],
+  "port": 8169,
+  "cmd": ["apps/game/desktop-pet/app.py"],
   "dock": false,
   "group": "game"
 }

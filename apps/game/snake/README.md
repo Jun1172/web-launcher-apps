@@ -1,7 +1,5 @@
 # 极简贪吃蛇
 
-![界面预览](images/screenshot.png)
-
 纯前端 Canvas 霓虹贪吃蛇。
 
 - 方向键 / WASD 或屏幕方向按钮控制，空格暂停

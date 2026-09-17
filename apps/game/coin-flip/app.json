@@ -5,10 +5,8 @@
   "color": "#22c55e",
   "version": "1.1.0",
   "changelog": "修复硬币显示与结果不一致的问题；全新金色 3D 硬币 UI；新增当前/最长连续统计与最近结果展示，统计本地持久化。",
-  "port": 8184,
-  "cmd": [
-    "apps/game/coin-flip/app.py"
-  ],
+  "port": 8172,
+  "cmd": ["apps/game/coin-flip/app.py"],
   "dock": false,
   "group": "game"
 }

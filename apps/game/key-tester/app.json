@@ -5,10 +5,8 @@
   "color": "#22c55e",
   "version": "1.1.0",
   "changelog": "全新深色科技风界面；3-2-1 倒计时保证公平计时；全部按键键帽化展示、目标键发光高亮；新增正确率/平均/最快统计。",
-  "port": 8179,
-  "cmd": [
-    "apps/game/key-tester/app.py"
-  ],
+  "port": 8166,
+  "cmd": ["apps/game/key-tester/app.py"],
   "dock": false,
   "group": "game"
 }
