@@ -1,11 +1,21 @@
-"""应用发布脚本
+"""应用仓库发布工具。
+
 用法:
-python publish.py                     # 列出所有可发布的应用
-python publish.py <app_dir>           # 发布单个（例: apps/user/hello）
-python publish.py --all               # 一键发布所有应用
-python publish.py --group admin       # 一键发布指定分组的应用
-python publish.py --list              # 仅列出，不发布
-python publish.py --launcher          # 打包并发布 launcher 主程序更新
+  python publish.py                         # 列出所有可发布应用
+  python publish.py --list                  # 仅列出，不发布
+  python publish.py <app_dir>               # 发布单个 App
+  python publish.py --all                   # 发布全部 App
+  python publish.py --group <group>         # 发布指定分组
+  python publish.py <app_dir> --dry-run     # 只打包，不上传
+  python publish.py --launcher              # 发布 Launcher zip
+  python publish.py --launcher --build      # 构建并发布 Launcher 二进制
+  python publish.py --launcher --changelog "更新说明"
+
+App 发布会自动处理：
+  - deps：依赖安装声明
+  - standalone：将 runtime 打进 App 包
+  - icon.png/icon.svg：图片图标
+  - App import 的 apps 内本地公共模块
 """
 import argparse
 import ast
