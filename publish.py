@@ -8,6 +8,7 @@ python publish.py --list              # 仅列出，不发布
 python publish.py --launcher          # 打包并发布 launcher 主程序更新
 """
 import argparse
+import ast
 import datetime
 import hashlib
 import json
@@ -42,6 +43,68 @@ def app_excludes(meta):
         if e:
             ex.add(e)
     return ex
+
+
+def collect_local_module_files(app_dir):
+    """收集 App 引用的仓库内本地 Python 模块，并随 App 一起打包。
+
+    例如 apps/game/breakout/app.py 引用 general.shared 时，解析为
+    apps/general/shared.py，发布到 App 包内部的 general/shared.py。
+    只收集实际 import 到的 .py 与包初始化文件，不把整个兄弟 App 目录带进去。
+    """
+    app_dir = Path(app_dir).resolve()
+    app_files = {p.resolve() for p in app_dir.rglob("*.py")}
+    pending = list(app_files)
+    seen = set()
+    result = []
+
+    def add_module(module):
+        if not module or module.startswith("."):
+            return
+        parts = [p for p in module.split(".") if p]
+        if not parts:
+            return
+        base = APPS_DIR.joinpath(*parts)
+        candidates = []
+        py_file = base.with_suffix(".py")
+        if py_file.is_file():
+            candidates.append(py_file)
+        init_file = base / "__init__.py"
+        if init_file.is_file():
+            candidates.append(init_file)
+        for p in candidates:
+            p = p.resolve()
+            if p not in seen and p not in app_files:
+                seen.add(p)
+                pending.append(p)
+                result.append(p)
+        for i in range(1, len(parts)):
+            init = APPS_DIR.joinpath(*parts[:i], "__init__.py")
+            if init.is_file():
+                init = init.resolve()
+                if init not in seen and init not in app_files:
+                    seen.add(init)
+                    pending.append(init)
+                    result.append(init)
+
+    while pending:
+        source = pending.pop()
+        try:
+            tree = ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
+        except (OSError, SyntaxError, UnicodeDecodeError):
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    add_module(alias.name)
+            elif isinstance(node, ast.ImportFrom) and node.level == 0:
+                module = node.module or ""
+                add_module(module)
+                for alias in node.names:
+                    if alias.name != "*" and module:
+                        add_module(module + "." + alias.name)
+
+    return result
 
 
 def is_excluded(rel, ex):
@@ -214,6 +277,10 @@ def publish_one(app_dir, *, upload=True, index_override=None):
     print(f"{kind_tag} 打包 {meta['name']} v{meta['version']} (id={meta['id']}, group={group})...")
 
     zip_path = BASE / zip_name
+    local_module_files = collect_local_module_files(app_dir)
+    if local_module_files:
+        print("   🔗 自动收集本地模块: " + ", ".join(
+            p.relative_to(APPS_DIR).as_posix() for p in local_module_files))
     
     # ---- standalone 应用: runtime 打进应用包 ----
     standalone = bool(meta.get("standalone"))
@@ -232,6 +299,13 @@ def publish_one(app_dir, *, upload=True, index_override=None):
             if f.name.endswith(".zip.tmp") or f.name == zip_name:
                 continue
             arcname = f.relative_to(APPS_DIR.parent)  
+            z.write(f, arcname.as_posix())
+        
+        # 本地公共模块放进当前 App 内部，避免安装器把多个 apps/ 前缀混在一个包里。
+        # 例如 apps/general/shared.py -> apps/game/breakout/general/shared.py。
+        for f in local_module_files:
+            rel = f.relative_to(APPS_DIR)
+            arcname = app_rel / rel
             z.write(f, arcname.as_posix())
         
         # standalone: runtime 打进应用包 (apps/<group>/<id>/runtime/<plat>/...)
