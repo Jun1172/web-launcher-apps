@@ -173,7 +173,7 @@ def build_entry(meta, zip_path):
     """生成 index.json 里的单个 app 条目"""
     # 白名单：只保留实际生效的字段（system 已废弃，group 为分组来源）
     FIELDS = ("id", "name", "icon", "color", "version", "changelog",
-              "port", "cmd", "dock", "group", "released")
+              "port", "cmd", "dock", "group", "released", "standalone")
     entry = {k: meta[k] for k in FIELDS if k in meta}
     
     # 兼容处理：如果旧配置没有 group，默认按 user
@@ -214,7 +214,15 @@ def publish_one(app_dir, *, upload=True, index_override=None):
     print(f"{kind_tag} 打包 {meta['name']} v{meta['version']} (id={meta['id']}, group={group})...")
 
     zip_path = BASE / zip_name
+    
+    # ---- standalone 应用: runtime 打进应用包 ----
+    standalone = bool(meta.get("standalone"))
+    runtime_dir = BASE / "runtime"
+    plat = "win-x64" if sys.platform == "win32" else "linux-x64"
+    app_rel = app_dir.relative_to(APPS_DIR.parent)
+    
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+        # 应用代码
         ex = app_excludes(meta)
         for f in app_dir.rglob("*"):
             if not f.is_file():
@@ -225,6 +233,24 @@ def publish_one(app_dir, *, upload=True, index_override=None):
                 continue
             arcname = f.relative_to(APPS_DIR.parent)  
             z.write(f, arcname.as_posix())
+        
+        # standalone: runtime 打进应用包 (apps/<group>/<id>/runtime/<plat>/...)
+        if standalone:
+            if not runtime_dir.exists():
+                print(f"   ⚠ standalone=true 但未找到 runtime/ 目录，跳过")
+            else:
+                rt_platform = runtime_dir / plat
+                if not rt_platform.exists():
+                    print(f"   ⚠ 未找到 runtime/{plat}/，跳过")
+                else:
+                    rt_files = list(rt_platform.rglob("*"))
+                    rt_count = sum(1 for f in rt_files if f.is_file())
+                    print(f"   🧬 standalone: 打包 runtime/{plat}/ ({rt_count} 文件)")
+                    for f in rt_files:
+                        if f.is_file():
+                            # 存放路径: apps/<group>/<id>/runtime/<plat>/...
+                            arcname = app_rel / "runtime" / plat / f.relative_to(rt_platform)
+                            z.write(f, arcname.as_posix())
 
     print(f"   ✓ {zip_name} ({zip_path.stat().st_size} bytes, sha256={sha256(zip_path)[:12]}...)")
     entry = build_entry(meta, zip_path)
