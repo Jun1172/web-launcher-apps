@@ -7,12 +7,9 @@
   python publish.py --all                   # 发布全部 App
   python publish.py --group <group>         # 发布指定分组
   python publish.py <app_dir> --dry-run     # 只打包，不上传
-  python publish.py --launcher              # 发布 Launcher zip
-  python publish.py --launcher --build      # 构建并发布 Launcher 二进制
-  python publish.py --launcher --changelog "更新说明"
 
 App 发布会自动处理：
-  - deps：依赖安装声明
+  - deps：依赖声明
   - standalone：将 runtime 打进 App 包
   - icon.png/icon.svg：图片图标
   - App import 的 apps 内本地公共模块
@@ -136,8 +133,7 @@ def is_excluded(rel, ex):
     """rel（相对应用目录的 Path）任一级目录或文件名命中排除集即排除。"""
     return any(part in ex for part in rel.parts)
 
-# 让 `from apps.build_launcher import build`（--launcher --build）在仓库根可用：
-# 脚本在 tools/ 时，sys.path[0] 是 tools/，需手动把仓库根加进去。
+# 让仓库根目录可导入 apps 包，供应用公共模块和发布逻辑使用。
 if str(BASE) not in sys.path:
     sys.path.insert(0, str(BASE))
 
@@ -421,178 +417,20 @@ def parse_args():
     g.add_argument("--all", action="store_true", help="发布所有应用")
     g.add_argument("--group", type=str, help="仅发布指定分组的应用 (例: --group admin)")
     g.add_argument("--list", action="store_true", help="列出所有可发布的应用")
-    g.add_argument("--launcher", action="store_true", help="打包并发布 launcher 主程序更新")
-    
-    parser.add_argument("--build", action="store_true", help="编译 launcher 为可执行二进制（配合 --launcher）")
+
     parser.add_argument("--dry-run", action="store_true", help="只打包不上传（测试打包）")
-    parser.add_argument("--changelog", type=str, default="", help="launcher 更新说明（配合 --launcher 使用）")
     return parser.parse_args()
-
-def build_launcher_zip(version: str, changelog: str) -> Path:
-    """把 launcher 基础文件打包成 zip"""
-    include_patterns = [
-        "launcher.py", "config.json", "README.md",
-        "apps/publish.py", "apps/README.md",
-    ]
-    
-    launcher_pkg_dir = BASE / "launcher"
-    launcher_pkg_files = []
-    if launcher_pkg_dir.exists():
-        for p in launcher_pkg_dir.rglob("*"):
-            if p.is_file() and not (p.suffix == ".pyc" or p.name == "__pycache__"):
-                launcher_pkg_files.append(p.relative_to(BASE))
-
-    # 核心改动：打包所有 group=="system" 的应用
-    system_files = []
-    for app_dir in _find_all_app_dirs():
-        try:
-            meta = json.loads((app_dir / "app.json").read_text(encoding="utf-8"))
-        except Exception:
-            continue
-        
-        app_group = meta.get("group") or "user"
-        if app_group != "system":
-            continue
-            
-        for p in app_dir.rglob("*"):
-            if p.is_file() and not (p.suffix == ".pyc" or p.name == "__pycache__" or ".venv" in p.parts):
-                system_files.append(p.relative_to(BASE))
-
-    files = [Path(p) for p in include_patterns if (BASE / p).exists()]
-    files += launcher_pkg_files
-    files += system_files
-
-    zip_path = BASE / f"launcher-{version}.zip"
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
-        for rel in files:
-            full = BASE / rel
-            if rel == Path("config.json"):
-                try:
-                    cfg = json.loads(full.read_text(encoding="utf-8"))
-                except Exception:
-                    cfg = {}
-                safe_cfg = {
-                    "launcher": cfg.get("launcher", {}),
-                    "repo": {"url": cfg.get("repo", {}).get("url", ""), "verify_ssl": cfg.get("repo", {}).get("verify_ssl", False)},
-                    "ports": cfg.get("ports", {}),
-                }
-                z.writestr(rel.as_posix(), json.dumps(safe_cfg, ensure_ascii=False, indent=2))
-                continue
-            z.write(full, rel.as_posix())
-    return zip_path
-
-def publish_launcher(*, upload: bool, changelog: str = "", build: bool = False):
-    """发布 launcher 主程序更新"""
-    version = CONFIG.get("launcher", {}).get("version")
-    if not version:
-        print("❌ config.json 的 launcher.version 未配置，无法发布 launcher 更新")
-        return False
-        
-    print(f"🚀 Launcher 更新: v{version}")
-    if changelog:
-        print(f"   更新说明: {changelog}")
-
-    zip_path = build_launcher_zip(version, changelog)
-    print(f"   ✓ {zip_path.name} ({zip_path.stat().st_size} bytes, "
-          f"sha256={sha256(zip_path)[:12]}...)")
-          
-    entry = {
-        "version": version,
-        "changelog": changelog,
-        "pkg": f"{PACKAGES_DIR}/{zip_path.name}",
-        "size": zip_path.stat().st_size,
-        "sha256": sha256(zip_path),
-        "released": datetime.datetime.now().isoformat(),
-    }
-
-    binary_path = None
-    if build:
-        try:
-            print(f"🔨 编译 launcher 二进制...")
-            from apps.build_launcher import build as do_build
-            binary_path = do_build(clean=True)
-            if binary_path:
-                binary_name = f"launcher-{version}" + (".exe" if sys.platform == "win32" else "")
-                pkg_dir = BASE / PACKAGES_DIR
-                pkg_dir.mkdir(parents=True, exist_ok=True)
-                dest = pkg_dir / binary_name
-                shutil.copy2(binary_path, dest)
-                print(f"   ✓ {binary_name} ({dest.stat().st_size} bytes)")
-                entry["binary"] = f"{PACKAGES_DIR}/{binary_name}"
-                entry["binary_sha256"] = sha256(dest)
-                entry["binary_size"] = dest.stat().st_size
-        except Exception as e:
-            print(f"  ⚠ 编译失败（仍发布 zip）: {e}")
-
-    index = None
-    index_tmp = None
-    if upload:
-        _ensure_remote_dirs()
-        print(f"🚀 上传 {zip_path.name} → {SERVER}:{REMOTE}/{PACKAGES_DIR}/")
-        try:
-            subprocess.run(
-                ["scp", str(zip_path), f"{SERVER}:{REMOTE}/{PACKAGES_DIR}/"],
-                check=True, capture_output=True, text=True, timeout=180,
-            )
-        except subprocess.CalledProcessError as e:
-            print(f"❌ 上传失败: {e.stderr or e.stdout or e}")
-            zip_path.unlink(missing_ok=True)
-            return False
-        print(f"   ✓ 上传完成")
-        
-        if not _verify_upload(entry["pkg"]):
-            print(f"  ⚠ HTTP 验证失败，文件可能不可访问")
-
-        if build and binary_path and "binary" in entry:
-            bin_file = BASE / entry["binary"]
-            print(f"🚀 上传 {bin_file.name} → {SERVER}:{REMOTE}/{PACKAGES_DIR}/")
-            try:
-                subprocess.run(
-                    ["scp", str(bin_file), f"{SERVER}:{REMOTE}/{PACKAGES_DIR}/"],
-                    check=True, capture_output=True, text=True, timeout=300,
-                )
-                print(f"   ✓ 上传完成")
-                if not _verify_upload(entry["binary"]):
-                    print(f"  ⚠ 二进制 HTTP 验证失败")
-            except subprocess.CalledProcessError as e:
-                print(f"  ⚠ 二进制上传失败: {e.stderr or e.stdout or e}")
-                del entry["binary"]
-                del entry["binary_sha256"]
-                del entry["binary_size"]
-
-        print("📋 更新远端 index.json...")
-        index, index_tmp = ensure_index()
-        index["launcher"] = entry
-        index["updated"] = datetime.datetime.now().isoformat()
-        write_and_upload_index(index, index_tmp)
-
-    try:
-        zip_path.unlink()
-    except OSError:
-        pass
-
-    print("✅ launcher 更新发布完成！" if upload else "✅ launcher 打包完成（未上传）")
-    return True
 
 def main():
     args = parse_args()
-    
-    if args.launcher:
-        ok = publish_launcher(
-            upload=not args.dry_run,
-            changelog=args.changelog,
-            build=args.build,
-        )
-        sys.exit(0 if ok else 4)
 
+    # 应用仓库只负责发布 App；Launcher/runtime/wheels 统一由 web-launcher 主仓库发布。
+    # 历史 Launcher 分支已从 CLI 移除。
     # 核心改动：支持 --group 参数
     has_filter = any([args.app_dir, args.all, args.group, args.list])
     if args.list or not has_filter:
         print("📋 可发布的应用清单:")
         print_apps_table(discover_apps("all"))
-        v = CONFIG.get("launcher", {}).get("version", "未配置")
-        print(f"\n🖥️  Launcher 本地版本: {v}")
-        print("   发布更新: python publish.py --launcher --changelog \"说明\"")
         if args.list:
             return
         print("\n用法:")

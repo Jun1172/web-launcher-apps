@@ -1,86 +1,41 @@
-# Apps — 应用开发指南
+# 应用开发指南
 
-所有应用都放在 `apps/` 目录下，按分组组织。每个应用是一个独立目录，包含 `app.json` 清单 + 任意语言的代码。
+应用放在 `apps/<group>/<id>/`，每个应用至少包含 `app.json` 和启动代码。Launcher 会递归扫描所有 `app.json`，`group` 决定应用分组。
 
-## 📋 应用分类
+## 目录示例
 
-| 类型 | 目录 | 默认安装 | 接受更新 | 允许卸载 |
-|------|------|----------|----------|----------|
-| 系统应用 | `apps/system/` | ✅ | ✅ | ❌ |
-| 用户应用 | `apps/user/` | ❌ | ✅ | ✅ |
-| 自定义分组 | `apps/<group>/`（如 `apps/general/`） | ❌ | ✅ | ✅ |
-
-- **系统应用**：launcher 启动时自动注册，受保护分组 `"system"`，不可卸载；适合放应用商店、系统工具、监控等基础设施
-- **用户应用**：默认走 `apps/user/`，由用户通过应用商店安装/卸载
-- **自定义分组**：app.json 写 `"group": "general"`，发布与卸载按此分组；目录可在 `apps/<group>/` 下（也可仍在 `apps/user/` 下，靠 group 字段决定归属）
-
-## 📄 app.json Schema
-
-完整字段说明见根目录 [README.md#app-json-schema](../README.md#-appjson-schema)。
-
-### 当前生效字段速查
-
-| 字段 | 类型 | 必填 | 默认 | 用途 |
-|------|------|------|------|------|
-| `id` | string | ✅ | — | 应用唯一标识（与目录名一致） |
-| `name` | string | ✅ | — | 显示名称 |
-| `version` | string | ✅ | — | 语义化版本号（`1.0.0`） |
-| `cmd` | string[] | ❌ | — | 启动命令；`.py`/`.pyw` 自动前缀 `sys.executable`，其他直接执行 |
-| `port` | int | ❌ | — | 端口；用于 TCP 就绪探测 + iframe URL；无端口则启动即视为就绪 |
-| `icon` | string | ❌ | 📦 | Emoji 回退图标；图片不存在或加载失败时显示 |
-| `icon_file` | string | ❌ | 自动查找 | App 目录内的图片图标，支持 PNG / SVG / WEBP / JPG；图片成功加载时优先显示 |
-| `color` | string | ❌ | #999 | 主题色（CSS） |
-| `changelog` | string | ❌ | — | 版本说明 |
-| `released` | string | ❌ | — | 发布时间（ISO 8601） |
-| `dock` | bool | ❌ | false | 是否常驻底部 Dock（出厂默认；用户可用 layout.json 覆盖） |
-| `group` | string | ❌ | `"user"` | 分组来源；`"system"` 受保护不可卸载，自定义分组发布/卸载按此分组 |
-
-> 已从 schema 移除的未实现字段：`ready_check` / `restart_policy` / `stop_signal` / `stop_timeout` / `workdir` / `requires` / `system`。当前只做 TCP 端口探测，进程停止固定用 `terminate()` + 2s 后强 kill 兜底。
-
-### 最小可用清单
-
-```json
-{
-  "id": "my-app",
-  "name": "我的应用",
-  "version": "1.0.0",
-  "cmd": ["apps/user/my-app/app.py"],
-  "port": 8120
-}
+```text
+apps/game/my-game/
+├── app.json
+├── icon.svg          # 可选，也支持 PNG / WEBP / JPG
+├── app.py
+├── index.html        # 可选
+├── images/           # 可选资源
+└── README.md
 ```
 
-无端口的进程型应用（无 HTTP 服务）：
+## app.json 常用字段
 
-```json
-{
-  "id": "my-daemon",
-  "name": "我的守护进程",
-  "version": "1.0.0",
-  "cmd": ["apps/user/my-daemon/daemon.py"]
-}
-```
+| 字段 | 必填 | 说明 |
+|---|---:|---|
+| `id` | 是 | 应用唯一 ID |
+| `name` | 是 | 显示名称 |
+| `version` | 是 | 应用版本 |
+| `cmd` | 否 | 启动命令；无 cmd 时是占位应用 |
+| `port` | 否 | HTTP/TCP 应用的建议端口 |
+| `group` | 否 | 分组，例如 `game`、`general`、`ros` |
+| `icon` | 否 | 图片失败时的 Emoji 回退 |
+| `icon_file` | 否 | App 目录内的图片图标 |
+| `color` | 否 | 应用主色 |
+| `deps` | 否 | 第三方 Python 依赖 |
+| `standalone` | 否 | 是否将 Python runtime 打进 App 包 |
+| `protect` | 否 | 是否编译为 pyc 发布 |
+| `dock` | 否 | 是否默认进入 Dock |
+| `exclude` | 否 | 额外排除的发布目录或文件名 |
 
-### 完整示例（C++ 二进制 + 自定义分组）
+## 图标规则
 
-```json
-{
-  "id": "cpp-hello",
-  "name": "C++ Hello",
-  "icon": "🔵",
-  "color": "#3498db",
-  "version": "1.0.0",
-  "port": 8140,
-  "cmd": ["apps/user/cpp-hello/run.py"],
-  "group": "user",
-  "requires": {
-    "comment": "C++ 源码，需要本机先编译：build.bat / bash build.sh"
-  }
-}
-```
-
-### 图标查找与回退规则
-
-Launcher 按以下顺序查找 App 图标：
+Launcher 按以下顺序查找图片：
 
 ```text
 1. app.json 的 icon_file
@@ -90,179 +45,92 @@ Launcher 按以下顺序查找 App 图标：
 5. icon.jpg / icon.jpeg
 ```
 
-图片存在且能加载时优先显示图片；图片缺失或加载失败时回退到 `app.json` 中的 `icon` Emoji；两者都没有时使用 `📦`。
+图片成功加载时优先使用图片；图片不存在、路径无效或加载失败时回退到 `icon` Emoji；两者都没有时显示 `📦`。
 
-图标文件放在当前 App 目录内，发布时会自动进入 App 压缩包，不需要单独上传：
+推荐图标尺寸：64×64、128×128 或 256×256。图标文件会随 App 一起发布：
+
+```powershell
+python publish.py apps/game/my-game
+```
+
+不需要单独上传图标。
+
+## HTTP 应用约定
+
+应用必须读取 Launcher 注入的端口：
+
+```python
+import os
+from http.server import ThreadingHTTPServer
+
+port = int(os.environ.get("LAUNCHER_APP_PORT", "8120"))
+host = os.environ.get("APP_HOST", "127.0.0.1")
+ThreadingHTTPServer((host, port), Handler).serve_forever()
+```
+
+不要把端口或监听地址硬编码为固定值。这样应用才能支持端口冲突处理和手机/局域网访问。
+
+## 本地公共模块
+
+如果应用引用仓库内公共代码，例如：
+
+```python
+from general.shared import serve_page
+```
+
+发布器会分析 import，并把实际引用的本地模块复制进当前 App 包。安装后的 App 不应依赖安装机上存在兄弟目录。
+
+ROS 应用可以使用 `apps/ros/shared_ros2.py` 中的共享能力；目标设备必须提前配置 ROS2 环境。
+
+## 本地测试
+
+```powershell
+cd C:\Users\jun\Desktop\xieyi\web-launcher
+python launcher.py
+```
+
+打开：
 
 ```text
-apps/game/breakout/
-├── app.json
-├── icon.svg
-├── app.py
-└── index.html
+http://127.0.0.1:8000/
 ```
 
-可以显式指定任意 App 目录内的安全相对路径：
+## 发布应用
 
-```json
-{
-  "icon": "🏓",
-  "icon_file": "images/breakout.svg"
-}
-```
+```powershell
+# 查看应用
+python publish.py --list
 
-不指定 `icon_file` 时，Launcher 会自动检查默认文件名。
+# 发布单个应用
+python publish.py apps/general/json-tool
 
-### 1. 创建目录
-
-```
-apps/user/<id>/
-├── app.json
-├── icon.png       # 可选；也支持 icon.svg / icon.webp / icon.jpg
-├── app.py  (或 main.cpp / index.js / hello.exe 等)
-└── README.md
-```
-
-### 2. 选择是否有端口
-
-| 你的应用类型 | 推荐 `port` | 行为 |
-|-------------|-------------|------|
-| HTTP 服务 | ✅ 填端口 | 启动后 launcher 用 TCP 轮询直到端口监听，超时 6s |
-| 裸 socket 服务 | ✅ 填端口 | 同上（只验端口监听，不验协议层） |
-| 后台进程 / 守护进程 | ❌ 不填 | 启动即视为就绪 |
-| C++ 二进制（监听端口） | ✅ 填端口 | 同 HTTP 服务 |
-| 占位 stub | ❌ 不填 cmd | 无 cmd 时立即视为就绪 |
-
-### 3. 编写 app.json
-
-参考 [hello/app.json](user/hello/app.json) 等示例。
-
-### 4. 本地测试
-
-```bash
-# 启动 launcher
-python launcher.py
-
-# 浏览器打开 http://127.0.0.1:8000/
-# 点你的应用图标，应能正常启动
-```
-
-### 5. 发布
-
-```bash
-# 单个发布
-python publish.py apps/user/<id>
-
-# 或随全部应用一起发布
-
-# 按分组发布
+# 发布指定分组
+python publish.py --group game
 python publish.py --group general
+python publish.py --group ros
+
+# 发布全部应用
+python publish.py --all
+
+# 只打包不上传
+python publish.py apps/game/my-game --dry-run
 ```
 
-## 🔌 端口分配约定
+应用仓库只发布 App。Launcher、runtime 和 wheels 由主仓库发布：
 
-端口按分组分段：system `8100-8109`、etws `8110-8169`、user `8120-8139`、general `8140-8159`、game `8173-8184`、ros `8201-8209`。
-
-### 本仓库应用端口
-
-| 应用 | 端口 |
-|------|------|
-| notes（便签） | 8120 |
-| ip-scanner（局域网扫描） | 8141 |
-| json-tool（JSON 工具） | 8142 |
-| lan-talk（茶水间） | 8143 |
-| mqtt-debug（MQTT 调试） | 8144 |
-| ping-tool（Ping 工具） | 8145 |
-| port-scanner（端口扫描） | 8146 |
-| tcp-debug（TCP 调试） | 8147 |
-| udp-debug（UDP 调试） | 8148 |
-| net-diag（网络诊断） | 8153 |
-| proc-demo（后台进程 demo） | — |
-| file-demo（占位 stub demo） | — |
-| snake（贪吃蛇） | 8173 |
-| flappy-bird（像素鸟） | 8174 |
-| sokoban（推箱子） | 8175 |
-| tetris（俄罗斯方块） | 8176 |
-| breakout（打砖块） | 8177 |
-| memory-match（记忆翻牌） | 8178 |
-| key-tester（按键测试） | 8179 |
-| life（生命游戏） | 8180 |
-| desktop-pet（电子宠物） | 8181 |
-| link-match（连连看） | 8182 |
-| cyber-wood-fish（电子木鱼） | 8183 |
-| coin-flip（抛硬币） | 8184 |
-| ros2-monitor | 8201 |
-| ros2-topic-inspector | 8203 |
-| ros2-service | 8204 |
-| ros2-param | 8205 |
-| ros2-action | 8206 |
-| ros2-graph | 8207 |
-| ros2-type-studio | 8209 |
-
-### 监听地址约定（APP_HOST）
-
-应用**不要硬编码** `127.0.0.1` / `0.0.0.0`。launcher 启动时会把自己的监听地址写入 `APP_HOST` 环境变量，子进程（应用）继承后据此绑定，从而自动跟随 launcher：桌面模式默认只监听回环；把 `config.json` 的 `launcher.host` 改成 `0.0.0.0` 后，所有应用随之一并对局域网开放，无需逐个修改。
-
-```python
-# 推荐写法：读 APP_HOST，缺省回退 127.0.0.1
-ThreadingHTTPServer((os.environ.get("APP_HOST", "127.0.0.1"), PORT), H).serve_forever()
+```powershell
+cd C:\Users\jun\Desktop\xieyi\web-launcher
+python publish.py --launcher --build --auto-version --changelog "更新说明"
 ```
 
-需要复用地址时（如打印启动日志）先取到变量再传入：
+## 分组
 
-```python
-HOST = os.environ.get("APP_HOST", "127.0.0.1")
-print(f"[my-app] 启动于 http://{HOST}:{PORT}")
-ThreadingHTTPServer((HOST, PORT), H).serve_forever()
-```
+- `game`：小游戏
+- `general`：通用工具
+- `ros`：ROS2 应用
 
-> 应用单独运行（未经过 launcher）时 `APP_HOST` 不存在，回退 `127.0.0.1`，行为与改造前一致。
+实际应用清单以各分组目录中的 `app.json` 为准。
 
-## 📦 打包结构
+## License
 
-`publish.py` 打包的 zip 顶层结构统一为 `apps/<group>/<id>/...`：
-
-```
-hello-1.0.0.zip
-└── apps/user/hello/
-    ├── app.json
-    ├── app.py
-    └── README.md
-```
-
-`do_install` 解压时自动识别 3 种结构（详见 [launcher/repo.py#atomic_extract_zip](../launcher/repo.py)）：
-- 结构 A：`apps/<group>/<id>/...`（统一打包，推荐）
-- 结构 B：`<id>/...`（旧打包格式）
-- 结构 C：扁平文件列表（旧扁平打包）
-
-## 🎯 各 demo 演示场景
-
-详见根 [README.md#内置应用](../README.md#-内置应用)。
-
-## 🦾 部署 C/C++ 应用
-
-`cpp-hello` 是 C++ 应用部署模板，约定如下：
-
-1. **源码即文档**：`app.json.requires.comment` 写明编译方式（`requires` 字段当前不阻塞安装，仅作为提示）
-2. **本机编译**：发布前在目标机器上跑 `build.bat`（Windows）/ `bash build.sh`（Linux/macOS），产物在 `bin/` 下
-3. **启动包装**：`run.py` 负责跨平台选可执行文件 + 用 `subprocess.Popen` 拉起
-   - launcher 看到的 PID 是 Python 包装进程（可观测、可停止）
-   - close_app 时 launcher 用 `taskkill /T /F` 或 `killpg` 递归杀整棵树，C++ 子进程不会成孤儿
-4. **跨架构部署**：x86 / ARM 需各自编译，建议用 zip 名后缀区分（如 `cpp-hello-1.0.0-win-x64.zip`）
-
-`app.json` 关键字段示例：
-
-```json
-{
-  "id": "cpp-hello",
-  "name": "C++ Hello",
-  "version": "1.0.0",
-  "port": 8140,
-  "cmd": ["apps/user/cpp-hello/run.py"],
-  "requires": {
-    "comment": "C++ 源码，需要本机先编译：build.bat / bash build.sh"
-  }
-}
-```
-
-> 注：当前 launcher 不读 `ready_check` / `stop_signal` / `stop_timeout` 等字段，C++ 程序的停止靠 `terminate()` + 2s 后 `taskkill /T` 兜底杀进程树。可配置信号能力在路线图。
+MIT
