@@ -27,8 +27,8 @@
 | `version` | string | ✅ | — | 语义化版本号（`1.0.0`） |
 | `cmd` | string[] | ❌ | — | 启动命令；`.py`/`.pyw` 自动前缀 `sys.executable`，其他直接执行 |
 | `port` | int | ❌ | — | 端口；用于 TCP 就绪探测 + iframe URL；无端口则启动即视为就绪 |
-| `icon` | string | ❌ | 📦 | Emoji 回退图标（图片加载失败时使用） |
-| `icon_file` | string | ❌ | 自动检测 `icon.png` | App 目录内的图标图片，支持 PNG / SVG / WEBP / JPG；图片优先于 `icon` |
+| `icon` | string | ❌ | 📦 | Emoji 回退图标；图片不存在或加载失败时显示 |
+| `icon_file` | string | ❌ | 自动查找 | App 目录内的图片图标，支持 PNG / SVG / WEBP / JPG；图片成功加载时优先显示 |
 | `color` | string | ❌ | #999 | 主题色（CSS） |
 | `changelog` | string | ❌ | — | 版本说明 |
 | `released` | string | ❌ | — | 发布时间（ISO 8601） |
@@ -78,7 +78,40 @@
 }
 ```
 
-## 🆕 新建应用
+### 图标查找与回退规则
+
+Launcher 按以下顺序查找 App 图标：
+
+```text
+1. app.json 的 icon_file
+2. icon.png
+3. icon.svg
+4. icon.webp
+5. icon.jpg / icon.jpeg
+```
+
+图片存在且能加载时优先显示图片；图片缺失或加载失败时回退到 `app.json` 中的 `icon` Emoji；两者都没有时使用 `📦`。
+
+图标文件放在当前 App 目录内，发布时会自动进入 App 压缩包，不需要单独上传：
+
+```text
+apps/game/breakout/
+├── app.json
+├── icon.svg
+├── app.py
+└── index.html
+```
+
+可以显式指定任意 App 目录内的安全相对路径：
+
+```json
+{
+  "icon": "🏓",
+  "icon_file": "images/breakout.svg"
+}
+```
+
+不指定 `icon_file` 时，Launcher 会自动检查默认文件名。
 
 ### 1. 创建目录
 
