@@ -4,6 +4,7 @@
   "icon": "🎯",
   "color": "#f97316",
   "version": "1.0.0",
+  "author": "Shaco",
   "changelog": "方向键移动光标，确认键翻牌，记录步数。",
   "port": 8178,
   "cmd": [

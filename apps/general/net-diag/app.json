@@ -4,8 +4,11 @@
   "icon": "🌐",
   "color": "#06b6d4",
   "version": "1.0.0",
+  "author": "Shaco",
   "changelog": "v1.0.0: Ping测试+TCP端口扫描+DNS解析，延迟折线图",
   "port": 8153,
-  "cmd": ["apps/general/net-diag/app.py"],
+  "cmd": [
+    "apps/general/net-diag/app.py"
+  ],
   "group": "general"
 }

@@ -4,8 +4,11 @@
   "icon": "⚙️",
   "color": "#2ecc71",
   "version": "1.0.0",
+  "author": "Shaco",
   "changelog": "验证无端口应用：靠进程存活判定就绪。",
-  "cmd": ["apps/general/proc-demo/app.py"],
+  "cmd": [
+    "apps/general/proc-demo/app.py"
+  ],
   "dock": false,
   "group": "general"
 }

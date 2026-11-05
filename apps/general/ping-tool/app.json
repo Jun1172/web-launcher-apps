@@ -4,9 +4,12 @@
   "icon": "📡",
   "color": "#3b82f6",
   "version": "1.0.1",
+  "author": "Shaco",
   "changelog": "修复 Windows 下 ping 输出中文乱码问题。",
   "port": 8145,
-  "cmd": ["apps/general/ping-tool/app.py"],
+  "cmd": [
+    "apps/general/ping-tool/app.py"
+  ],
   "dock": false,
   "group": "general"
 }

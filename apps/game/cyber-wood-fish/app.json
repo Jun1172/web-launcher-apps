@@ -4,6 +4,7 @@
   "icon": "🪵",
   "color": "#f59e0b",
   "version": "1.0.0",
+  "author": "Shaco",
   "changelog": "点击木鱼积累功德，支持空格键、回车键和触摸操作。",
   "port": 8183,
   "cmd": [

@@ -4,9 +4,12 @@
   "icon": "🔌",
   "color": "#fbbf24",
   "version": "1.0.1",
+  "author": "Shaco",
   "changelog": "修复 JSON 键名空格，增强 Hex 解析容错与前端错误提示。",
   "port": 8147,
-  "cmd": ["apps/general/tcp-debug/app.py"],
+  "cmd": [
+    "apps/general/tcp-debug/app.py"
+  ],
   "dock": false,
   "group": "general"
 }

@@ -4,9 +4,12 @@
   "icon": "🗒️",
   "color": "#f39c12",
   "version": "1.0.0",
+  "author": "Shaco",
   "changelog": "便签 demo：增删改查 + localStorage 持久化，验证浏览器本地存储场景。",
   "port": 8120,
-  "cmd": ["apps/general/notes/app.py"],
+  "cmd": [
+    "apps/general/notes/app.py"
+  ],
   "dock": false,
   "group": "general"
 }

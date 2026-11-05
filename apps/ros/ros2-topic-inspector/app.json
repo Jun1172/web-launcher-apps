@@ -4,9 +4,12 @@
   "icon": "📡",
   "color": "#8b5cf6",
   "version": "1.1.0",
+  "author": "Shaco",
   "changelog": "订阅+发布+内置数据源闭环测试。",
   "port": 8203,
-  "cmd": ["apps/ros/ros2-topic-inspector/app.py"],
+  "cmd": [
+    "apps/ros/ros2-topic-inspector/app.py"
+  ],
   "dock": false,
   "group": "ros"
 }

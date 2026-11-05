@@ -4,9 +4,12 @@
   "icon": "🎯",
   "color": "#3b82f6",
   "version": "1.0.0",
+  "author": "Shaco",
   "changelog": "动作列表+send_goal+内置动作服务器闭环测试。",
   "port": 8206,
-  "cmd": ["apps/ros/ros2-action/app.py"],
+  "cmd": [
+    "apps/ros/ros2-action/app.py"
+  ],
   "dock": false,
   "group": "ros"
 }

@@ -4,10 +4,15 @@
   "icon": "🌐",
   "color": "#f87171",
   "version": "1.0.0",
+  "author": "Shaco",
   "changelog": "MQTT 订阅/发布调试，需安装 paho-mqtt。",
   "port": 8144,
-  "cmd": ["apps/general/mqtt-debug/app.py"],
+  "cmd": [
+    "apps/general/mqtt-debug/app.py"
+  ],
   "dock": false,
   "group": "general",
-  "env": {"PIP_REQUIRE": "paho-mqtt"}
+  "env": {
+    "PIP_REQUIRE": "paho-mqtt"
+  }
 }
